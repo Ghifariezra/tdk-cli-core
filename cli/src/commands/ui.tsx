@@ -509,11 +509,13 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
       // Parse SGR 1006 mouse protocol: ESC[<btn;x;yM or ESC[<btn;x;ym
       // biome-ignore lint/suspicious/noControlCharactersInRegex: \\x1b ESC is intentional (ANSI SGR/CSI sequence parsing)
       const sgrMatch = str.match(/\x1b\[<(\d+);(\d+);(\d+)([Mm])/);
-      if (sgrMatch) {
-        const btn = parseInt(sgrMatch[1], 10);
-        // sgrMatch[2] is the x coordinate, which the handler does not use
-        const y = parseInt(sgrMatch[3], 10);
-        const release = sgrMatch[4] === "m";
+      const btnText = sgrMatch?.[1];
+      const yText = sgrMatch?.[3];
+      const action = sgrMatch?.[4];
+      if (btnText !== undefined && yText !== undefined && action !== undefined) {
+        const btn = parseInt(btnText, 10);
+        const y = parseInt(yText, 10);
+        const release = action === "m";
 
         // Check if it's a left click (btn & 0b11 == 0 means left button)
         const isLeftClick = (btn & 0b11) === 0;
