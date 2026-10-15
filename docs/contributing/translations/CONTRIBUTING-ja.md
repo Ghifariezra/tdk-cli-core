@@ -2,7 +2,7 @@
 
 [English](../../../CONTRIBUTING.md) | [简体中文](CONTRIBUTING-zh_cn.md) | [繁體中文](CONTRIBUTING-zh_tw.md) | 日本語 | [한국어](CONTRIBUTING-ko.md)
 
-> このページは [CONTRIBUTING.md](../../../CONTRIBUTING.md) の翻訳です。内容が異なる場合は英語版が優先されます。リンク先のガイドは現在英語のみです。
+> このページは [CONTRIBUTING.md](../../../CONTRIBUTING.md) の翻訳です。内容が異なる場合は英語版が優先されます。ガイドの日本語訳も利用できます。
 
 ようこそ！小さな修正も大きな機能もどちらも役に立ちます。まずは短い[コントリビューターガイド](../README.md)から始めてください。変更を見つけ、実装し、確認し、pull request を作成するまでを順に案内します。
 
@@ -32,7 +32,7 @@ bun run typecheck && bun run lint && bun run test   # 約1分。何かを変更�
 
 コードを書かなくても手伝えます。コマンドを実行し、その出力を TDK が約束していること（`--help`、ドキュメント、または別のコマンド）と比べ、違いがあれば報告してください。それがバグです。
 
-[TDK でバグを探す](../finding-bugs.md)には具体的な手順があります。テスト用のスクラッチプロジェクト、期待される出力付きのコマンドチェックリスト、過去にバグを見つけたパターン、そしてメンテナーがすぐ対応できる報告フォーマットです。たとえば `tdk networks` が URL を一つも表示しないのに `tdk up --dry-run` が表示する場合、2つのコマンドが食い違っているので、どちらかが間違っています。
+日本語訳の[TDK でバグを見つける](finding-bugs-ja.md)ガイドには具体的な手順があります。テスト用のスクラッチプロジェクト、期待される出力付きのコマンドチェックリスト、過去にバグを見つけたパターン、そしてメンテナーがすぐ対応できる報告フォーマットです。たとえば `tdk networks` が URL を一つも表示しないのに `tdk up --dry-run` が表示する場合、2つのコマンドが食い違っているので、どちらかが間違っています。
 
 ## pull request をレビューする
 
@@ -45,7 +45,7 @@ bun run typecheck && bun run lint && bun run test   # 約1分。何かを変更�
 - 🗺️ [TDK ジャーニー](../../journey/README.md)：島を選び、クエストをクリアして、ランクを上げましょう（8 kyu → 1 dan）
 - [Good first issues](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue)
 - [Help wanted](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted)
-- ステップごとのチェックリストで[バグを探す](../finding-bugs.md)
+- ステップごとのチェックリストで[バグを探す](finding-bugs-ja.md)
 - [バグを報告する、または質問する](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
 issue を選んだら、`I'll take this`（または `I would like this one`、`I'd like to work on this`、`Can I take this?`）とコメントしてください。ボットがあなたをアサインし、`claimed` ラベルを付けるので、2人が同じ作業をすることを防げます。pull request のないまま 14 日経つとリマインドされ、21 日で解放されます。ドラフト PR も進捗として扱われます。バグ報告では、できれば `tdk doctor` の出力を添えてください。
