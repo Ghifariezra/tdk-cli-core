@@ -1,0 +1,38 @@
+## Context
+
+`minTdkVersion` already lives in `.tdk/project.json` with an evaluator shared by
+`flisk up` and `flisk doctor`. It is a floor: newer CLIs pass. Teams need an exact pin.
+
+## Goals / Non-Goals
+
+**Goals:** one canonical pin, a clear mismatch message before any mutation,
+a copyable fix, CI-readable, no change for unpinned repos.
+**Non-Goals:** semver ranges, a `flisk pin` subcommand, auto-switching versions,
+`install.sh` support for older tags (not documented today).
+
+## Decisions
+
+1. **Field in `.tdk/project.json`, named `pinnedTdkVersion`.** Reuses the file and
+   schema the floor uses; CI can read it with `jq` without running Flisk. A separate
+   `.tdk-version` file would create a second source of truth next to `minTdkVersion`.
+2. **Exact `MAJOR.MINOR.PATCH`**, same pattern as `minTdkVersion`. Ranges are a follow-up.
+3. **Mismatch is two-way.** A newer CLI than the pin is also a mismatch; that is the
+   point of pinning. The fix is not `flisk upgrade` (it only goes to latest):
+   `npm install -g @flisk-sh/flisk@<pin>`, or edit the pin to move it deliberately.
+4. **Pin and floor coexist.** If `pinnedTdkVersion` < `minTdkVersion`, the config is
+   `malformed`. When a pin is set and matches, the floor is satisfied by construction.
+5. **Bypass with the existing `--ignore-version`**, with a warning. `flisk doctor` still reports it.
+6. **Exempt commands:** `upgrade`, `version`, `completion`, help. Blocking them would
+   leave no way out of a mismatch.
+7. **Enforcement point:** extend `enforceVersionFloor` so `up` keeps one call site, and
+   add the same gate before project-file writers (`config`, `eject`, `project`,
+   `resource`; audit which subcommands actually write).
+
+## Risks / Trade-offs
+
+- A newer CLI is rejected on purpose; the message must make the escape obvious.
+- Command names can drift; the copyable command must come from one constant.
+
+## Open Questions
+
+- Maintainer preference for the field name (`pinnedTdkVersion` vs `tdkVersion`).
