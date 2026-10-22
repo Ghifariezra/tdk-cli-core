@@ -12,14 +12,14 @@ a copyable fix, CI-readable, no change for unpinned repos.
 
 ## Decisions
 
-1. **Field in `.tdk/project.json`, named `pinnedTdkVersion`.** Reuses the file and
+1. **Field in `.tdk/project.json`, named `pinnedFliskVersion` (per maintainer review).** Reuses the file and
    schema the floor uses; CI can read it with `jq` without running Flisk. A separate
    `.tdk-version` file would create a second source of truth next to `minTdkVersion`.
 2. **Exact `MAJOR.MINOR.PATCH`**, same pattern as `minTdkVersion`. Ranges are a follow-up.
 3. **Mismatch is two-way.** A newer CLI than the pin is also a mismatch; that is the
    point of pinning. The fix is not `flisk upgrade` (it only goes to latest):
    `npm install -g @flisk-sh/flisk@<pin>`, or edit the pin to move it deliberately.
-4. **Pin and floor coexist.** If `pinnedTdkVersion` < `minTdkVersion`, the config is
+4. **Pin and floor coexist.** If `pinnedFliskVersion` < `minTdkVersion`, the config is
    `malformed`. When a pin is set and matches, the floor is satisfied by construction.
 5. **Bypass with the existing `--ignore-version`**, with a warning. `flisk doctor` still reports it.
 6. **Exempt commands:** `upgrade`, `version`, `completion`, help. Blocking them would
@@ -33,5 +33,4 @@ a copyable fix, CI-readable, no change for unpinned repos.
 
 ## Open Questions
 
-- Maintainer preference for the field name (`pinnedTdkVersion` vs `tdkVersion`).
 - Bypass outside `up`: one shared environment variable (for example `FLISK_IGNORE_VERSION=1`) or a `--ignore-version` flag per command.

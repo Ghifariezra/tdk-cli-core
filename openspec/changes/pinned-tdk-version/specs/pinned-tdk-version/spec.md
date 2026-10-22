@@ -1,18 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: Repository declares one pinned CLI version
-A repository MUST be able to set `pinnedTdkVersion` in `.tdk/project.json` as a `MAJOR.MINOR.PATCH` string. Flisk MUST reject any other value as malformed.
+A repository MUST be able to set `pinnedFliskVersion` in `.tdk/project.json` as a `MAJOR.MINOR.PATCH` string. Flisk MUST reject any other value as malformed.
 
 #### Scenario: Valid pin
-- **WHEN** `pinnedTdkVersion` is `"1.3.80"` and the running CLI is 1.3.80
+- **WHEN** `pinnedFliskVersion` is `"1.3.80"` and the running CLI is 1.3.80
 - **THEN** the check passes and the command continues
 
 #### Scenario: Malformed pin
-- **WHEN** `pinnedTdkVersion` is `"latest"`
+- **WHEN** `pinnedFliskVersion` is `"latest"`
 - **THEN** the command exits with code 1 and names the field and an example such as `"1.3.80"`
 
 #### Scenario: Pin below the floor
-- **WHEN** `pinnedTdkVersion` is lower than `minTdkVersion`
+- **WHEN** `pinnedFliskVersion` is lower than `minTdkVersion`
 - **THEN** the configuration is reported as malformed
 
 ### Requirement: Mismatch is reported before any mutation
@@ -33,7 +33,7 @@ A mismatch report MUST include a command that installs the pinned version and MU
 #### Scenario: Fix lines
 - **WHEN** a mismatch is reported
 - **THEN** the output includes `npm install -g @flisk-sh/flisk@<pinned version>`
-- **AND** states that editing `pinnedTdkVersion` moves the pin deliberately
+- **AND** states that editing `pinnedFliskVersion` moves the pin deliberately
 
 ### Requirement: Escape hatches stay available
 Commands needed to leave a mismatch MUST NOT be blocked by it. The existing `--ignore-version` flag MUST bypass the pin check on `flisk up` with a warning, and every other gated command MUST offer a documented bypass that also warns.
@@ -54,14 +54,14 @@ Commands needed to leave a mismatch MUST NOT be blocked by it. The existing `--i
 - **THEN** the version check fails with the same message and fix
 
 #### Scenario: CI
-- **WHEN** CI installs the version read from `pinnedTdkVersion` and runs `flisk doctor`
+- **WHEN** CI installs the version read from `pinnedFliskVersion` and runs `flisk doctor`
 - **THEN** the job fails if the installed version differs from the pin
 
 ### Requirement: Unpinned repositories are unchanged
-A project without `pinnedTdkVersion` MUST behave exactly as before, including `minTdkVersion` handling.
+A project without `pinnedFliskVersion` MUST behave exactly as before, including `minTdkVersion` handling.
 
 #### Scenario: No pin
-- **WHEN** `pinnedTdkVersion` is absent
+- **WHEN** `pinnedFliskVersion` is absent
 - **THEN** behavior is identical to today
 
 #### Scenario: Bypass on another gated command

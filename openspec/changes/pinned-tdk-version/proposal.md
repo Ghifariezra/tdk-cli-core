@@ -7,8 +7,8 @@ written or started (follow-up to #564, CI usage coordinated with #1756).
 
 ## What Changes
 
-- Add optional `pinnedTdkVersion` (`MAJOR.MINOR.PATCH`) to `.tdk/project.json`.
-- Extend `cli/src/utils/tdk-version.ts` with `evaluateTdkVersionPin`
+- Add optional `pinnedFliskVersion` (`MAJOR.MINOR.PATCH`) to `.tdk/project.json`.
+- Add `evaluateFliskVersionPin` in `cli/src/utils/flisk-version.ts`
   (`none | ok | mismatch | malformed`).
 - Check the pin from `enforceVersionFloor` (`flisk up`, also under `--dry-run`),
   from `flisk doctor`, and before commands that write project files.
@@ -34,4 +34,4 @@ written or started (follow-up to #564, CI usage coordinated with #1756).
 
 - `cli/src/utils/tdk-version.ts`, `cli/src/commands/up.ts`, `doctor.ts`, and the
   project schema; `cli/dist/` rebuilt.
-- Projects without `pinnedTdkVersion` behave exactly as before.
+- Projects without `pinnedFliskVersion` behave exactly as before.
