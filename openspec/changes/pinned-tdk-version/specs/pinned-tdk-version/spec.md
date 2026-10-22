@@ -36,7 +36,7 @@ A mismatch report MUST include a command that installs the pinned version and MU
 - **AND** states that editing `pinnedTdkVersion` moves the pin deliberately
 
 ### Requirement: Escape hatches stay available
-Commands needed to leave a mismatch MUST NOT be blocked by it, and the existing `--ignore-version` flag MUST bypass the pin check with a warning.
+Commands needed to leave a mismatch MUST NOT be blocked by it. The existing `--ignore-version` flag MUST bypass the pin check on `flisk up` with a warning, and every other gated command MUST offer a documented bypass that also warns.
 
 #### Scenario: Upgrade and version under mismatch
 - **WHEN** the pin does not match
@@ -63,3 +63,7 @@ A project without `pinnedTdkVersion` MUST behave exactly as before, including `m
 #### Scenario: No pin
 - **WHEN** `pinnedTdkVersion` is absent
 - **THEN** behavior is identical to today
+
+#### Scenario: Bypass on another gated command
+- **WHEN** `flisk config regenerate` runs on a mismatch with the documented bypass set
+- **THEN** it warns that the pin was not checked and continues

@@ -24,9 +24,7 @@ a copyable fix, CI-readable, no change for unpinned repos.
 5. **Bypass with the existing `--ignore-version`**, with a warning. `flisk doctor` still reports it.
 6. **Exempt commands:** `upgrade`, `version`, `completion`, help. Blocking them would
    leave no way out of a mismatch.
-7. **Enforcement point:** extend `enforceVersionFloor` so `up` keeps one call site, and
-   add the same gate before project-file writers (`config`, `eject`, `project`,
-   `resource`; audit which subcommands actually write).
+7. **Enforcement point:** keep `enforceVersionFloor` as the single call site for `up`. Other commands call a shared gate right after resolving the project root, before any read-modify-write: `config` (regenerate, migrate, verify, enable-infra, disable-infra), `eject`, `resource` (not `resource --frameworks`), and `stack`. `project` is not gated: a new project has no `.tdk/project.json`, so the pin evaluates to none. `config edit` and `resource --frameworks` stay exempt.
 
 ## Risks / Trade-offs
 
@@ -36,3 +34,4 @@ a copyable fix, CI-readable, no change for unpinned repos.
 ## Open Questions
 
 - Maintainer preference for the field name (`pinnedTdkVersion` vs `tdkVersion`).
+- Bypass outside `up`: one shared environment variable (for example `FLISK_IGNORE_VERSION=1`) or a `--ignore-version` flag per command.
