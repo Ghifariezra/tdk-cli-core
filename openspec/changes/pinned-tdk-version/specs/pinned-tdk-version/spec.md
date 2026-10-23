@@ -12,7 +12,7 @@ A repository MUST be able to set `pinnedFliskVersion` in `.tdk/project.json` as 
 - **THEN** the command exits with code 1 and names the field and an example such as `"1.3.80"`
 
 #### Scenario: Pin below the floor
-- **WHEN** `pinnedFliskVersion` is lower than `minTdkVersion`
+- **WHEN** `pinnedFliskVersion` is lower than `minFliskVersion`
 - **THEN** the configuration is reported as malformed
 
 ### Requirement: Mismatch is reported before any mutation
@@ -58,7 +58,7 @@ Commands needed to leave a mismatch MUST NOT be blocked by it. The existing `--i
 - **THEN** the job fails if the installed version differs from the pin
 
 ### Requirement: Unpinned repositories are unchanged
-A project without `pinnedFliskVersion` MUST behave exactly as before, including `minTdkVersion` handling.
+A project without `pinnedFliskVersion` MUST behave exactly as before, including `minFliskVersion` handling.
 
 #### Scenario: No pin
 - **WHEN** `pinnedFliskVersion` is absent

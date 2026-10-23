@@ -1,11 +1,12 @@
 ## 1. Schema and evaluator
+- [ ] 1.0 Rename `minTdkVersion` to `minFliskVersion` and `tdk-version.ts` to `flisk-version.ts` in schema, evaluator, `up`, `doctor`, tests and docs
 - [ ] 1.1 Add `pinnedFliskVersion` to the project schema and its contract test
-- [ ] 1.2 Add `evaluateFliskVersionPin` in `flisk-version.ts` with unit tests (new file; keep `tdk-version.ts` exports working, or rename and update imports in `up.ts` and `doctor.ts`)
-- [ ] 1.3 Reject a pin lower than `minTdkVersion` as malformed
+- [ ] 1.2 Add `evaluateFliskVersionPin` in `flisk-version.ts` with unit tests (in the renamed file; update imports in `up.ts` and `doctor.ts`)
+- [ ] 1.3 Reject a pin lower than `minFliskVersion` as malformed
 
 ## 2. Enforcement
 - [ ] 2.1 Call the pin check from `enforceVersionFloor` (up and dry-run)
-- [ ] 2.2 Add the pin check to `checkTdkVersion` in `doctor.ts`
+- [ ] 2.2 Add the pin check to `checkFliskVersion` in `doctor.ts`
 - [ ] 2.3 Audit `config` (regenerate, migrate, verify, enable-infra, disable-infra), `eject`, `resource`, and `stack` for file writes and gate them with a shared helper
 - [ ] 2.4 Keep `upgrade`, `version`, `completion` exempt, with tests
 
