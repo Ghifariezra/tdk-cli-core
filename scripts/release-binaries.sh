@@ -4,9 +4,11 @@
 
 set -euo pipefail
 
-readonly ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly ROOT_DIR
 readonly RELEASE_REPOSITORY="flisk-sh/releases"
-readonly VERSION="$(node -p "require('${ROOT_DIR}/cli/package.json').version")"
+VERSION="$(node -p "require('${ROOT_DIR}/cli/package.json').version")"
+readonly VERSION
 readonly RELEASE_TAG="v${VERSION}"
 readonly RELEASE_DIR="${ROOT_DIR}/release-dist-${RELEASE_TAG#v}"
 readonly PUBLISH="${1:-}"
@@ -226,7 +228,7 @@ EOF
 
   previous_release="$(gh release list --repo "${RELEASE_REPOSITORY}" --limit 1 --json tagName,publishedAt --jq '.[0] | [.tagName, .publishedAt] | @tsv')"
   if [[ -n "${previous_release}" ]]; then
-    IFS=$'\t' read -r previous_tag previous_published_at <<<"${previous_release}"
+    IFS=$'\t' read -r _ previous_published_at <<<"${previous_release}"
     if [[ -n "${previous_published_at}" ]]; then
       source_commit="${SOURCE_COMMIT:-${GITHUB_SHA:-}}"
       if [[ -z "${source_commit}" ]]; then
@@ -240,7 +242,7 @@ EOF
         > "${generated_notes_file}"
       if [[ -s "${generated_notes_file}" ]]; then
         printf '\n## Pull requests\n\n' >> "${release_notes_file}"
-        while IFS=$'\t' read -r number title author url merged_at; do
+        while IFS=$'\t' read -r number title author url _; do
           printf -- '- %s: [#%s](%s) (@%s)\n' "${title}" "${number}" "${url}" "${author}" >> "${release_notes_file}"
         done < "${generated_notes_file}"
 

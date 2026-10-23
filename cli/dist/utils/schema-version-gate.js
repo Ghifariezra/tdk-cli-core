@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
-import { relative } from "node:path";
+import { relative, sep } from "node:path";
 import chalk from "chalk";
 import { formatCount } from "./formatting.js";
 import { SERVICE_MANIFEST_SCHEMA_VERSION } from "./service-manifest.js";
@@ -28,7 +28,8 @@ export function enforceSchemaVersionGate(projectRoot, options = {}, exit = proce
         const version = resource.config?.schemaVersion;
         if (version === undefined || version === SERVICE_MANIFEST_SCHEMA_VERSION)
             return [];
-        const file = relative(projectRoot, resource.configPath) || resource.configPath;
+        const rel = relative(projectRoot, resource.configPath) || resource.configPath;
+        const file = rel.split(sep).join("/");
         return [
             `${file} schemaVersion ${JSON.stringify(version)}: this flisk supports ${SERVICE_MANIFEST_SCHEMA_VERSION}`,
         ];

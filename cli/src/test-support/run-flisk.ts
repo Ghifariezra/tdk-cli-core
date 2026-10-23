@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 /** The CLI entry point the tests run, resolved once. */
-export const tdkBin = path.resolve(here, "../../bin/tdk.js");
+export const fliskBin = path.resolve(here, "../../bin/tdk.js");
 
-export interface RunTdkOptions {
+export interface FliskRunOptions {
   cwd: string;
   /** Written to the child's stdin. */
   input?: string;
@@ -19,7 +19,7 @@ export interface RunTdkOptions {
   timeout?: number;
 }
 
-export interface RunTdkResult {
+export interface FliskRunResult {
   status: number;
   stdout: string;
   stderr: string;
@@ -30,12 +30,12 @@ export interface RunTdkResult {
  * Throws when the child could not run to completion (spawn error, timeout or signal), so a test never reads
  * `status: null` as an exit code.
  */
-export function runTdk(args: readonly string[], options: RunTdkOptions): RunTdkResult {
+export function runFlisk(args: readonly string[], options: FliskRunOptions): FliskRunResult {
   const env: Record<string, string | undefined> = { ...process.env, NO_COLOR: "1", ...options.env };
   for (const key of Object.keys(env)) {
     if (env[key] === undefined) delete env[key];
   }
-  const result = spawnSync(process.execPath, [tdkBin, ...args], {
+  const result = spawnSync(process.execPath, [fliskBin, ...args], {
     cwd: options.cwd,
     encoding: "utf-8",
     input: options.input,

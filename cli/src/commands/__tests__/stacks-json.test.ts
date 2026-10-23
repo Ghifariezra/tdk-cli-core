@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
 import { describe, expect, it } from "vitest";
-import { createTempProject, parseEnvelope, runTdk } from "../../test-support/index.js";
+import { createTempProject, parseEnvelope, runFlisk } from "../../test-support/index.js";
 
 describe("flisk resources and stacks --json", () => {
   function createProject(includeResources = true): string {
@@ -16,7 +16,7 @@ describe("flisk resources and stacks --json", () => {
   }
 
   function run(args: string[], includeResources = true) {
-    return runTdk(args, { cwd: createProject(includeResources) });
+    return runFlisk(args, { cwd: createProject(includeResources) });
   }
 
   it("prints stack names and counts in a versioned JSON report", () => {

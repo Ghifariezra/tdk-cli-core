@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +9,8 @@ import type { FileGenerationTask } from "../../types/index.js";
 import {
   ensureDirectory,
   ensureGitignore,
+  ensureSmokeRecordsIgnored,
+  isInsideGitWorkTree,
   writeFilesWithProgress,
   writeJsonFile,
   writeJsonFileInDir,
@@ -72,6 +74,28 @@ describe("file helpers", () => {
 
       expect(readFileSync(join(root, "config.json"), "utf-8")).toBe('{\n  "name": "api"\n}\n');
     });
+
+    it("overwrites existing JSON file completely", () => {
+      const filePath = join(root, "overwrite.json");
+      writeJsonFile(filePath, { initial: "data", oldKey: 123 });
+      writeJsonFile(filePath, { replaced: true });
+
+      expect(JSON.parse(readFileSync(filePath, "utf-8"))).toEqual({ replaced: true });
+    });
+
+    it("writes primitive values as JSON", () => {
+      const numPath = join(root, "number.json");
+      const boolPath = join(root, "boolean.json");
+      const strPath = join(root, "string.json");
+
+      writeJsonFile(numPath, 42);
+      writeJsonFile(boolPath, true);
+      writeJsonFile(strPath, "hello");
+
+      expect(readFileSync(numPath, "utf-8")).toBe("42\n");
+      expect(readFileSync(boolPath, "utf-8")).toBe("true\n");
+      expect(readFileSync(strPath, "utf-8")).toBe('"hello"\n');
+    });
   });
 
   describe("writeTextFile & writeTextFileInDir", () => {
@@ -103,6 +127,14 @@ describe("file helpers", () => {
         "created in the requested directory",
       );
     });
+
+    it("overwrites existing text file with new content", () => {
+      const filePath = join(root, "overwrite.txt");
+      writeTextFile(filePath, "original content");
+      writeTextFile(filePath, "brand new content");
+
+      expect(readFileSync(filePath, "utf-8")).toBe("brand new content");
+    });
   });
 
   describe("ensureDirectory", () => {
@@ -118,6 +150,14 @@ describe("file helpers", () => {
     it("does nothing when directory already exists", () => {
       ensureDirectory(root);
       expect(existsSync(root)).toBe(true);
+    });
+
+    it("creates deep directory structures idempotently", () => {
+      const deep = join(root, "a", "b", "c", "d", "e");
+      ensureDirectory(deep);
+      expect(existsSync(deep)).toBe(true);
+      ensureDirectory(deep);
+      expect(existsSync(deep)).toBe(true);
     });
   });
 
@@ -191,6 +231,36 @@ describe("file helpers", () => {
 
       consoleSpy.mockRestore();
     });
+
+    it("handles empty tasks list without errors or logs", () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const onProgress = vi.fn();
+
+      writeFilesWithProgress(root, [], onProgress);
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(onProgress).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("converts non-string text task content using String()", () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      const tasks: FileGenerationTask[] = [
+        {
+          type: "text",
+          filename: "number.txt",
+          content: 98765 as unknown as string,
+          description: "Writing numeric content",
+          emoji: "[num]",
+        },
+      ];
+
+      writeFilesWithProgress(root, tasks);
+      expect(readFileSync(join(root, "number.txt"), "utf-8")).toBe("98765");
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe("ensureGitignore", () => {
@@ -243,6 +313,78 @@ describe("file helpers", () => {
 
       const added = ensureGitignore(root);
       expect(added).toEqual([]);
+    });
+
+    it("handles CRLF line endings in existing .gitignore", () => {
+      writeFileSync(join(root, ".gitignore"), "dist\r\n.env\r\nnode_modules/\r\n");
+
+      const added = ensureGitignore(root);
+      expect(added).toEqual([".tdk/.tdk-out/", ".tdk/.project-id", ".tdk/smoke/"]);
+    });
+
+    it("handles whitespace around entries and duplicate lines in existing .gitignore", () => {
+      writeFileSync(
+        join(root, ".gitignore"),
+        "  .env  \n.env\n\t.tdk/.project-id\t\n\n# Comments\n",
+      );
+
+      const added = ensureGitignore(root);
+      expect(added).toEqual([".tdk/.tdk-out/", ".tdk/smoke/", "node_modules/"]);
+    });
+
+    it("does not treat .env.local as .env", () => {
+      writeFileSync(join(root, ".gitignore"), ".env.local\n.env.production\n");
+
+      const added = ensureGitignore(root);
+      expect(added).toContain(".env");
+    });
+  });
+
+  describe("isInsideGitWorkTree", () => {
+    it("returns false for a directory that is not in a repository", () => {
+      expect(isInsideGitWorkTree(root)).toBe(false);
+    });
+
+    it("returns true when current directory contains .git directory", () => {
+      mkdirSync(join(root, ".git"));
+      expect(isInsideGitWorkTree(root)).toBe(true);
+    });
+
+    it("returns true for nested subdirectory inside a git repository", () => {
+      mkdirSync(join(root, ".git"));
+      const nested = join(root, "apps", "web", "src");
+      mkdirSync(nested, { recursive: true });
+      expect(isInsideGitWorkTree(nested)).toBe(true);
+    });
+
+    it("returns true when .git file exists (linked worktree)", () => {
+      writeFileSync(join(root, ".git"), "gitdir: /path/to/worktree");
+      expect(isInsideGitWorkTree(root)).toBe(true);
+    });
+  });
+
+  describe("ensureSmokeRecordsIgnored", () => {
+    it("returns undefined outside a git worktree and does not create .gitignore", () => {
+      expect(ensureSmokeRecordsIgnored(root)).toBeUndefined();
+      expect(existsSync(join(root, ".gitignore"))).toBe(false);
+    });
+
+    it("ensures .tdk/smoke/ in .gitignore inside a git worktree", () => {
+      mkdirSync(join(root, ".git"));
+      expect(ensureSmokeRecordsIgnored(root)).toBeUndefined();
+
+      const content = readFileSync(join(root, ".gitignore"), "utf-8");
+      expect(content).toContain(".tdk/smoke/");
+    });
+
+    it("catches write errors and returns warning message", () => {
+      mkdirSync(join(root, ".git"));
+      mkdirSync(join(root, ".gitignore")); // collision: directory instead of file
+
+      const warning = ensureSmokeRecordsIgnored(root);
+      expect(warning).toBeDefined();
+      expect(warning).toContain("Could not add .tdk/smoke/ to");
+      expect(warning).toContain("Git may track the smoke response records.");
     });
   });
 });

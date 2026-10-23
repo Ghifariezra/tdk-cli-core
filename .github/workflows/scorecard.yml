@@ -1,6 +1,6 @@
 # OpenSSF Scorecard: scores the repo's security practices and publishes the result for the README badge.
 # Needs no account or secret; results are published with the workflow's OIDC token.
-name: 🏅 Scorecard
+name: 📏 Security | Scorecard
 
 on:
   schedule:

@@ -1,0 +1,7 @@
+{
+  "name": "npm-cli-pin",
+  "private": true,
+  "dependencies": {
+    "npm": "12.2.0"
+  }
+}

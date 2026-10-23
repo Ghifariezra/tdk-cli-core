@@ -1,4 +1,4 @@
-name: 🏷️ PR area labels
+name: 🏷️ Automation | PR area labels
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only reads the changed-file list and PR metadata, then writes labels and review requests

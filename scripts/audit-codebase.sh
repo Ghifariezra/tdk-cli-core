@@ -9,7 +9,6 @@
 set -e
 
 # Colors for output
-RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -63,12 +62,16 @@ scan_directory() {
     for ext in $extensions; do
         while IFS= read -r file; do
             if [ -n "$file" ]; then
-                local findings=$(grep -n -E "${MARKERS}" "$file" 2>/dev/null || true)
+                local findings
+                findings=$(grep -n -E "${MARKERS}" "$file" 2>/dev/null || true)
                 if [ -n "$findings" ]; then
-                    echo "$file" >> "$output_file"
-                    echo "$findings" >> "$output_file"
-                    echo "" >> "$output_file"
-                    local file_count=$(echo "$findings" | wc -l)
+                    {
+                        echo "$file"
+                        echo "$findings"
+                        echo ""
+                    } >> "$output_file"
+                    local file_count
+                    file_count=$(echo "$findings" | wc -l)
                     count=$((count + file_count))
                 fi
             fi

@@ -2,7 +2,7 @@
 # candidate CLI, install it, clone and configure the bundled example, boot it and prove the routed worker write path. It runs on
 # pull requests and the merge queue, uses no secrets (suite.json needsSecrets is empty) and replaces the retired example-e2e workflow as a
 # required check. The job name e2e-examples is the required-check context.
-name: 🧪 Examples E2E gate
+name: 🚪 E2E | Examples gate
 
 on:
   merge_group:

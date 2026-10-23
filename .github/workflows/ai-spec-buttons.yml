@@ -3,7 +3,7 @@
 # Kind (openspec / primitive / skip) is resolved in the script from labels + body.
 # Separate from the PR review buttons (.github/workflows/ai-review-buttons.yml).
 # Do not switch this job to pull_request_target; issues events are same-repo by definition.
-name: 📝 AI spec buttons
+name: 📝 Automation | AI spec buttons
 
 on:
   issues:

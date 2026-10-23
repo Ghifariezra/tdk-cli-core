@@ -5,7 +5,7 @@
 import * as fs from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import pkg from "../../../package.json" with { type: "json" };
-import { createTempDir, runTdk } from "../../test-support/index.js";
+import { createTempDir, runFlisk } from "../../test-support/index.js";
 import { listedCommandNames, showHelp } from "../help.js";
 import { getRegisteredCommands } from "../registry.js";
 
@@ -56,7 +56,7 @@ describe("flisk --help", () => {
   it("rejects unknown commands with exit code 1", () => {
     const dir = createTempDir("tdk-unknown-cmd-");
     try {
-      const res = runTdk(["unknown-command-xyz"], { cwd: dir });
+      const res = runFlisk(["unknown-command-xyz"], { cwd: dir });
       expect(res.status).toBe(1);
       expect(res.stderr).toContain("error: unknown command 'unknown-command-xyz'");
     } finally {
@@ -67,7 +67,7 @@ describe("flisk --help", () => {
   it("rejects unknown command target passed to help with exit code 1", () => {
     const dir = createTempDir("tdk-unknown-help-");
     try {
-      const res = runTdk(["help", "unknown-target-xyz"], { cwd: dir });
+      const res = runFlisk(["help", "unknown-target-xyz"], { cwd: dir });
       expect(res.status).toBe(1);
       expect(res.stderr).toContain("error: unknown command 'unknown-target-xyz'");
     } finally {

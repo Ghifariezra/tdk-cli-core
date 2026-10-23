@@ -1,6 +1,6 @@
 # Opens one issue per scheduled or main-branch job that fails three runs in a row, and closes it after three passing runs
 # (#1288). Runs on the default branch only and never checks out pull request code.
-name: 🚨 Red job tracker
+name: 🚨 CI | Red job tracker
 
 on:
   schedule:

@@ -4,7 +4,7 @@
 # pull_request_target is allowed only because checkout is the default branch
 # and the only write is a PR comment. Do not checkout the PR head and do not
 # run PR code in this job.
-name: 🤖 AI conflict buttons
+name: 🥊 Automation | AI conflict buttons
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only writes a PR comment

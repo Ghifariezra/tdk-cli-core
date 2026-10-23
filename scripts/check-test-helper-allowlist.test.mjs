@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { checkHelpers, declaredHelpers } from "./check-test-helper-allowlist.mjs";
 
-const clean = `import { runTdk } from "../../test-support/index.js";\nconst x = 1;\n`;
-const copied = `const cliBin = path.join(root, "bin");\nfunction runTdk(args: string[]) {\n}\n`;
+const clean = `import { runFlisk } from "../../test-support/index.js";\nconst x = 1;\n`;
+const copied = `const cliBin = path.join(root, "bin");\nfunction runFlisk(args: string[]) {\n}\n`;
 const resourceArrow = `const resource = (name: string): DiscoveredResource => ({ name });\n`;
 const localVariable = `const resource = discovery.resources.find((r) => r.name === name);\n`;
 
@@ -15,7 +15,7 @@ test("declaredHelpers finds function and function-valued const declarations with
     [...declaredHelpers(copied)],
     [
       ["cliBin", 1],
-      ["runTdk", 2],
+      ["runFlisk", 2],
     ],
   );
   assert.deepEqual([...declaredHelpers(resourceArrow)], [["resource", 1]]);
@@ -40,15 +40,15 @@ test("a new file that copies a helper fails", () => {
     allowlistText: "",
   });
   assert.equal(errors.length, 2);
-  assert.match(errors[0], /new\.test\.ts:1 declares cliBin; import tdkBin/);
-  assert.match(errors[1], /new\.test\.ts:2 declares runTdk/);
+  assert.match(errors[0], /new\.test\.ts:1 declares cliBin; import fliskBin/);
+  assert.match(errors[1], /new\.test\.ts:2 declares runFlisk/);
 });
 
 test("an allowlisted copy passes", () => {
   const { errors } = checkHelpers({
     files: new Map([["cli/src/a/__tests__/old.test.ts", copied]]),
     allowlistText:
-      "cli/src/a/__tests__/old.test.ts runTdk\ncli/src/a/__tests__/old.test.ts cliBin\n",
+      "cli/src/a/__tests__/old.test.ts runFlisk\ncli/src/a/__tests__/old.test.ts cliBin\n",
   });
   assert.deepEqual(errors, []);
 });
@@ -56,7 +56,7 @@ test("an allowlisted copy passes", () => {
 test("an allowlisted file that adds a helper not on its line fails", () => {
   const { errors } = checkHelpers({
     files: new Map([["cli/src/a/__tests__/old.test.ts", copied]]),
-    allowlistText: "cli/src/a/__tests__/old.test.ts runTdk\n",
+    allowlistText: "cli/src/a/__tests__/old.test.ts runFlisk\n",
   });
   assert.equal(errors.length, 1);
   assert.match(errors[0], /old\.test\.ts:1 declares cliBin/);
@@ -65,16 +65,16 @@ test("an allowlisted file that adds a helper not on its line fails", () => {
 test("a listed entry whose file no longer duplicates the helper fails", () => {
   const { errors } = checkHelpers({
     files: new Map([["cli/src/a/__tests__/old.test.ts", clean]]),
-    allowlistText: "cli/src/a/__tests__/old.test.ts runTdk\n",
+    allowlistText: "cli/src/a/__tests__/old.test.ts runFlisk\n",
   });
   assert.equal(errors.length, 1);
-  assert.match(errors[0], /"cli\/src\/a\/__tests__\/old\.test\.ts runTdk" no longer duplicates/);
+  assert.match(errors[0], /"cli\/src\/a\/__tests__\/old\.test\.ts runFlisk" no longer duplicates/);
 });
 
 test("a listed entry for a deleted file fails", () => {
   const { errors } = checkHelpers({
     files: new Map(),
-    allowlistText: "cli/src/a/__tests__/gone.test.ts runTdk\n",
+    allowlistText: "cli/src/a/__tests__/gone.test.ts runFlisk\n",
   });
   assert.equal(errors.length, 1);
   assert.match(errors[0], /no longer duplicates/);

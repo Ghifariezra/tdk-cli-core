@@ -21,6 +21,8 @@ record="$results_dir/shop-cold-boot-$timestamp.md"
 run_dir="$(mktemp -d "${TMPDIR:-/tmp}/tdk-cold-boot.XXXXXX")"
 up_pid=""
 
+# Invoked indirectly by the EXIT, INT, and TERM traps below.
+# shellcheck disable=SC2329
 cleanup() {
   if [[ -n "$up_pid" ]] && kill -0 "$up_pid" 2>/dev/null; then
     flisk down >/dev/null 2>&1 || true

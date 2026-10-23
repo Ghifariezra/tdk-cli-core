@@ -70,11 +70,14 @@ to_mib() {
 # Sums memory and CPU over the given container ids; prints "<mib> <cpu_pct>".
 sample() {
   local ids="$1" mem=0 cpu=0 line
+  local -a ids_array
   [[ -n "$ids" ]] || { echo "0.0 0.0"; return; }
+  ids="${ids//$'\n'/ }"
+  read -r -a ids_array <<< "$ids"
   while read -r line; do
     mem="$(awk -v a="$mem" -v b="$(to_mib "$(echo "$line" | awk '{print $2}')")" 'BEGIN { printf "%.1f", a + b }')"
     cpu="$(awk -v a="$cpu" -v b="${line%%\%*}" 'BEGIN { printf "%.1f", a + b }')"
-  done < <(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}}' $ids)
+  done < <(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}}' "${ids_array[@]}")
   echo "$mem $cpu"
 }
 
@@ -161,17 +164,17 @@ read -r mem2 cpu2 < <(sample "$new_ids")
 
 stop_stack
 # Containers this run started that `flisk down` did not stop: report, then remove them.
-left=""
+left=()
 for id in $new_ids; do
   name="$(docker ps --filter "id=$id" --format '{{.Names}}')"
-  [[ -n "$name" ]] && left="$left $name"
+  [[ -n "$name" ]] && left+=("$name")
 done
 {
   echo
   echo "## After \`flisk down\`"
-  if [[ -n "$left" ]]; then
-    echo "- Still running from this run (removed by the script):$(printf ' `%s`' $left)"
-    docker rm -f $left >/dev/null 2>&1 || true
+  if (( ${#left[@]} > 0 )); then
+    echo "- Still running from this run (removed by the script):$(printf " \`%s\`" "${left[@]}")"
+    docker rm -f "${left[@]}" >/dev/null 2>&1 || true
   else
     echo "- Nothing from this run was left running"
   fi

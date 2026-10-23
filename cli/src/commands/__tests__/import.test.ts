@@ -5,11 +5,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildForwardedImportArgs,
   checkCoreVersion,
+  compareSemver,
   IMPORT_PACKAGE,
   importCommand,
   importInvocation,
   isVersionAtLeast,
   MIN_CORE_VERSION,
+  parseSemver,
+  RECOMMENDED_CORE_VERSION,
   runImport,
 } from "../import.js";
 
@@ -232,6 +235,17 @@ describe("flisk import", () => {
       expect(check.ok).toBe(true);
     });
 
+    it("permits -h shorthand even on older core versions", () => {
+      const check = checkCoreVersion("1.3.103", ["-h"]);
+      expect(check.ok).toBe(true);
+    });
+
+    it("defaults to write check when no arguments are provided", () => {
+      const check = checkCoreVersion("1.3.103");
+      expect(check.ok).toBe(false);
+      expect(check.message).toContain("flisk upgrade");
+    });
+
     it("exits 1 without spawning when core version is below minimum", async () => {
       const err = vi.spyOn(console, "error").mockImplementation(() => {});
       const { calls, spawnFn } = fakeSpawn({ code: 0 });
@@ -240,6 +254,94 @@ describe("flisk import", () => {
       expect(calls).toHaveLength(0);
       expect(err).toHaveBeenCalledWith(expect.stringContaining("flisk upgrade"));
       err.mockRestore();
+    });
+
+    it("resolves to exit code 1 when child process exits with null or undefined code", async () => {
+      const { spawnFn: nullCodeSpawn } = fakeSpawn({ code: null });
+      expect(await runImport(["."], nullCodeSpawn, () => "1.3.200")).toBe(1);
+
+      const { spawnFn: undefinedCodeSpawn } = fakeSpawn({ code: undefined });
+      expect(await runImport(["."], undefinedCodeSpawn, () => "1.3.200")).toBe(1);
+    });
+  });
+
+  describe("parseSemver and compareSemver helpers", () => {
+    it("parses valid semantic version strings correctly", () => {
+      expect(parseSemver("1.2.3")).toEqual({
+        major: 1,
+        minor: 2,
+        patch: 3,
+        prerelease: [],
+      });
+      expect(parseSemver("v2.4.6")).toEqual({
+        major: 2,
+        minor: 4,
+        patch: 6,
+        prerelease: [],
+      });
+      expect(parseSemver("1.2")).toEqual({
+        major: 1,
+        minor: 2,
+        patch: 0,
+        prerelease: [],
+      });
+      expect(parseSemver("1.0.0-alpha.1")).toEqual({
+        major: 1,
+        minor: 0,
+        patch: 0,
+        prerelease: ["alpha", 1],
+      });
+      expect(parseSemver("1.0.0+20130313144700")).toEqual({
+        major: 1,
+        minor: 0,
+        patch: 0,
+        prerelease: [],
+      });
+    });
+
+    it("returns null for unparseable version strings", () => {
+      expect(parseSemver("")).toBeNull();
+      expect(parseSemver("   ")).toBeNull();
+      expect(parseSemver("not-a-version")).toBeNull();
+      expect(parseSemver("1.2.3.4")).toBeNull();
+      expect(parseSemver("1.x.3")).toBeNull();
+    });
+
+    it("compares semver strings according to SemVer 2.0.0 specification", () => {
+      // Major difference
+      expect(compareSemver("2.0.0", "1.9.9")).toBe(1);
+      expect(compareSemver("1.0.0", "2.0.0")).toBe(-1);
+
+      // Minor difference
+      expect(compareSemver("1.5.0", "1.4.99")).toBe(1);
+      expect(compareSemver("1.4.99", "1.5.0")).toBe(-1);
+
+      // Patch difference
+      expect(compareSemver("1.3.105", "1.3.104")).toBe(1);
+      expect(compareSemver("1.3.104", "1.3.105")).toBe(-1);
+
+      // Equal versions
+      expect(compareSemver("1.3.104", "1.3.104")).toBe(0);
+
+      // Prerelease comparison: normal version has higher precedence than prerelease
+      expect(compareSemver("1.0.0", "1.0.0-alpha")).toBe(1);
+      expect(compareSemver("1.0.0-alpha", "1.0.0")).toBe(-1);
+      expect(compareSemver("1.0.0-alpha", "1.0.0-alpha")).toBe(0);
+
+      // Prerelease identifiers comparison
+      expect(compareSemver("1.0.0-alpha", "1.0.0-beta")).toBe(-1);
+      expect(compareSemver("1.0.0-1", "1.0.0-2")).toBe(-1);
+      expect(compareSemver("1.0.0-1", "1.0.0-alpha")).toBe(-1); // numeric has lower precedence than string
+      expect(compareSemver("1.0.0-alpha.1", "1.0.0-alpha")).toBe(1);
+
+      // Invalid inputs return null
+      expect(compareSemver("invalid", "1.0.0")).toBeNull();
+      expect(compareSemver("1.0.0", "invalid")).toBeNull();
+    });
+
+    it("validates that RECOMMENDED_CORE_VERSION is at least MIN_CORE_VERSION", () => {
+      expect(isVersionAtLeast(RECOMMENDED_CORE_VERSION, MIN_CORE_VERSION)).toBe(true);
+      expect(compareSemver(RECOMMENDED_CORE_VERSION, MIN_CORE_VERSION)).toBe(1);
     });
   });
 });

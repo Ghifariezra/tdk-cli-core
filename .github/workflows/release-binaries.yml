@@ -1,4 +1,4 @@
-name: 🚀 Release binaries and npm package
+name: 🚀 Release | Binaries and npm package
 
 on:
   workflow_dispatch:
@@ -335,50 +335,6 @@ jobs:
             npm publish "$TARBALL" --access public --provenance
           fi
 
-      # Keep main in step with what was published. A push made with
-      # github.token doesn't trigger workflows, so this can't loop. If it
-      # fails, the release is still out; the next run bumps past it anyway.
-      - name: Commit the version bump
-        if: needs.build.outputs.bumped == 'true'
-        env:
-          # A PR opened with github.token never starts pull_request workflows, so the required checks would
-          # never report. RELEASE_PAT (a fine-grained PAT or GitHub App token) fixes that.
-          GH_TOKEN: ${{ secrets.RELEASE_PAT || github.token }}
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          node -e '
-            const fs = require("fs");
-            const [version, date] = process.argv.slice(1);
-            if (!fs.existsSync("CHANGELOG.md")) process.exit(0);
-            const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
-            const start = lines.indexOf("## Unreleased");
-            if (start === -1) process.exit(0);
-            let end = lines.findIndex((line, index) => index > start && line.startsWith("## "));
-            if (end === -1) end = lines.length;
-            if (!lines.slice(start + 1, end).some((line) => line.trim())) process.exit(0);
-            lines.splice(start + 1, 0, "", "## " + version + " (" + date + ")");
-            fs.writeFileSync("CHANGELOG.md", lines.join("\n"));
-          ' "$VERSION" "$(date -u +%F)"
-          git add package.json cli/package.json
-          if [ -f CHANGELOG.md ]; then git add CHANGELOG.md; fi
-          git commit -m "Release ${VERSION} (automatic version bump)"
-          # main requires the e2e-journeys, e2e-examples, e2e-platforms, e2e-scale and 📋 Summary checks, which a direct push from
-          # github.token never reports, so the bump goes through a pull request that runs them. The commit only changes version
-          # fields and the changelog, so the published artifacts and their checksums are unaffected.
-          branch="release/bump-${VERSION}"
-          # The checkout keeps no credentials, so push with the token explicitly.
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force "$remote" "HEAD:refs/heads/${branch}"
-          if ! gh pr view "$branch" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
-              --title "Release ${VERSION} (automatic version bump)" \
-              --body "Version bump to ${VERSION}, opened by the release workflow after it published the release to npm and GitHub. Merges once the required checks pass."
-          fi
-          gh pr merge "$branch" --repo "$GITHUB_REPOSITORY" --squash --auto --delete-branch || \
-            echo "::warning::Released ${VERSION}, but could not enable auto-merge for the version bump PR ${branch}."
-
       # OpenSSF Scorecard's Signed-Releases check looks at the GitHub releases of THIS repository, while the binaries live in
       # flisk-sh/releases. So this repository gets a release per version that carries the binaries' checksums and a keyless
       # Sigstore signature of them (the signature is also attached to the binary release in flisk-sh/releases). It runs last and is allowed to fail: npm, the binary release and the version bump are already
@@ -406,7 +362,7 @@ jobs:
             gh release upload "v${VERSION}" --clobber checksums.txt checksums.txt.sigstore.json
           else
             gh release create "v${VERSION}" --draft --latest=false --title "v${VERSION}" \
-              --notes "Signed checksums for flisk ${VERSION}. The binaries are on https://github.com/flisk-sh/releases/releases/tag/v${VERSION} and the npm package is @flisk-sh/flisk@${VERSION}. Verify with: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity-regexp 'https://github.com/flisk-sh/flisk/.github/workflows/release-binaries.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt" \
+              --notes "Signed checksums for flisk ${VERSION}. The binaries are on https://github.com/flisk-sh/releases/releases/tag/v${VERSION} and the npm package is @flisk-sh/flisk@${VERSION}. Verify with: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity-regexp 'https://github.com/flisk-sh/flisk/.github/workflows/(release-binaries|sign-release)\.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt" \
               checksums.txt checksums.txt.sigstore.json
           fi
 
@@ -423,12 +379,67 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           set -euo pipefail
           gh attestation download checksums.txt --repo "$GITHUB_REPOSITORY"
           mv sha256:*.jsonl checksums.txt.intoto.jsonl
           gh release upload "v${VERSION}" --repo "$GITHUB_REPOSITORY" --clobber checksums.txt.intoto.jsonl
+          # flisk-sh/releases is a repository of its own that Scorecard can score, so the provenance goes next to the binaries too.
+          GH_TOKEN="$RELEASE_TOKEN" gh release upload "v${VERSION}" --repo flisk-sh/releases --clobber \
+            checksums.txt.intoto.jsonl || echo "::warning::Could not attach the provenance to the flisk-sh/releases release"
+
+      # Keep main in step with what was published. A push made with
+      # github.token doesn't trigger workflows, so this can't loop. This runs
+      # last on purpose (2026-10-23, v1.3.207): when the bump push was
+      # rejected, every earlier step had already published, but the signing
+      # steps below it were skipped and the release stayed a draft without
+      # its signature. Bookkeeping can fail without taking the signed
+      # release with it; npm, the binary release and the checksums on this
+      # repository are already out by the time this step starts.
+      - name: Commit the version bump
+        if: needs.build.outputs.bumped == 'true'
+        env:
+          # A PR opened with github.token never starts pull_request workflows, so the required checks would
+          # never report. RELEASE_PAT (a fine-grained PAT or GitHub App token) fixes that.
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          node -e '
+            const fs = require("fs");
+            const [version, date] = process.argv.slice(1);
+            if (!fs.existsSync("CHANGELOG.md")) process.exit(0);
+            const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
+            const start = lines.indexOf("## Unreleased");
+            if (start === -1) process.exit(0);
+            let end = lines.findIndex((line, index) => index > start && line.startsWith("## "));
+            if (end === -1) end = lines.length;
+            if (!lines.slice(start + 1, end).some((line) => line.trim())) process.exit(0);
+            lines.splice(start + 1, 0, "", "## " + version + " (" + date + ")");
+            fs.writeFileSync("CHANGELOG.md", lines.join("\n"));
+          ' "$VERSION" "$(date -u +%F)"
+          git add package.json cli/package.json
+          if [ -f CHANGELOG.md ]; then git add CHANGELOG.md; fi
+          git commit -m "Release ${VERSION} (automatic version bump)"
+          # main requires checks that a direct push from github.token never reports, so the bump goes
+          # through a pull request that runs them. The commit only changes version fields and the
+          # changelog, so the published artifacts and their checksums are unaffected. The
+          # "release branch protections" ruleset has do_not_enforce_on_create on, so the fresh
+          # release/bump-* branch can be pushed; its required checks gate the merge, not the push.
+          branch="release/bump-${VERSION}"
+          # The checkout keeps no credentials, so push with the token explicitly.
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force "$remote" "HEAD:refs/heads/${branch}"
+          if ! gh pr view "$branch" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+              --title "Release ${VERSION} (automatic version bump)" \
+              --body "Version bump to ${VERSION}, opened by the release workflow after it published the release to npm and GitHub. Merges once the required checks pass."
+          fi
+          gh pr merge "$branch" --repo "$GITHUB_REPOSITORY" --squash --auto --delete-branch || \
+            echo "::warning::Released ${VERSION}, but could not enable auto-merge for the version bump PR ${branch}."
 
   publish-github-packages:
     name: Publish npm package to GitHub Packages
@@ -498,9 +509,22 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
-      # Trusted publishing needs an npm CLI that speaks OIDC.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/npm-cli
+      # Trusted publishing needs an npm CLI that speaks OIDC. The npm version is pinned by the lockfile
+      # in .github/npm-cli (npm ci verifies its hashes); the installed copy is put first on PATH.
       - name: Update npm for trusted publishing
-        run: npm install --global npm@12.2.0 # zizmor: ignore[adhoc-packages] npm CLI is pinned for trusted publishing
+        env:
+          NPM_CLI_DIR: ${{ runner.temp }}/npm-cli
+        run: |
+          set -euo pipefail
+          mkdir -p "$NPM_CLI_DIR"
+          cp .github/npm-cli/package.json .github/npm-cli/package-lock.json "$NPM_CLI_DIR"/
+          (cd "$NPM_CLI_DIR" && npm ci --ignore-scripts --no-audit --fund=false)
+          echo "$NPM_CLI_DIR/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Build the unscoped archive
         id: unscoped
@@ -539,6 +563,7 @@ jobs:
 
       - name: Publish the unscoped package to npm
         env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
           TARBALL: ${{ steps.unscoped.outputs.tarball }}
         run: |
@@ -547,9 +572,20 @@ jobs:
             echo "flisk@${VERSION} is already published, skipping."
             exit 0
           fi
-          # No NODE_AUTH_TOKEN: npm exchanges this workflow's OIDC identity for a short-lived publish
-          # token, and attaches a provenance attestation for the public package.
-          npm publish "$TARBALL" --access public --provenance
+          # OIDC by default, NPM_TOKEN as the fallback — the same split as the scoped publish. An
+          # empty NPM_TOKEN must not be exported: npm would attempt token auth and fail with EOTP
+          # instead of falling back to OIDC.
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "Publishing the unscoped package with the NPM_TOKEN secret."
+            export NODE_AUTH_TOKEN="$NPM_TOKEN"
+          else
+            echo "No NPM_TOKEN secret: publishing the unscoped package with npm trusted publishing (OIDC)."
+          fi
+          if ! npm publish "$TARBALL" --access public --provenance; then
+            echo "::error::Could not publish flisk@${VERSION} under the unscoped name."
+            echo "::error::npm answers 404 when the 'flisk' package does not exist on npmjs.com yet, or exists without a trusted publisher for this workflow and no NPM_TOKEN secret is set. Create the package once (npm publish a stub, or claim it in the npm UI), then run: npm trust github flisk --file release-binaries.yml --repo flisk-sh/flisk --allow-publish — or set the NPM_TOKEN secret. Full steps: docs/releasing.md (Unscoped npm package). The scoped @flisk-sh/flisk release is unaffected."
+            exit 1
+          fi
 
   # The version bump lands on main as a squash commit after publish, so the tag for this release can only point at it
   # once that commit exists. The sign step above leaves the GitHub release as a draft; this job tags the merged bump

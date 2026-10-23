@@ -2,7 +2,7 @@
 # Windows runner: typecheck, build and CLI help, platform unit tests, the native Windows refusal contract, and the
 # one-command demo contract. It runs on pull requests and the merge queue, uses no secrets (suite.json needsSecrets is empty)
 # and replaces the retired windows-smoke workflow as a required check. The job name e2e-platforms is the required-check context.
-name: 🪟 Platforms E2E gate
+name: 🖥️ E2E | Platforms gate
 
 on:
   merge_group:

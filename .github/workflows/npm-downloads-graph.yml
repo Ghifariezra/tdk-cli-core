@@ -1,6 +1,6 @@
 # Refreshes docs/assets/npm-downloads.svg from the public npm stats API every Monday.
 # Run manually from the Actions tab too. npm stats lag 1-2 days.
-name: 📈 npm downloads graph
+name: 📈 Community | npm downloads graph
 
 on:
   schedule:

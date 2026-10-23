@@ -8,12 +8,12 @@
 # The run right after a security scan reacts to a new finding; the nightly schedule is
 # the reliable path and also covers the Dependabot alerts, which arrive without a scan.
 # The script is the single implementation, so a contributor can run it locally.
-name: 🛡️ Security alert issues
+name: 🚩 Security | Alert issues
 
 on:
   # A scan that finished on main or on the schedule may have found something new.
   workflow_run: # zizmor: ignore[dangerous-triggers] the job checks out the default branch, never the scanned run's code or artifacts, and reads the API by number
-    workflows: ["🛡️ Security Scans"]
+    workflows: ["🛡️ Security | Scans"]
     types: [completed]
   schedule:
     - cron: "47 5 * * *"

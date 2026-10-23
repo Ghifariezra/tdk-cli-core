@@ -242,6 +242,14 @@
 			"owner": "maintainers"
 		},
 		{
+			"workflow": "codeql.yml",
+			"job": "starlark",
+			"tier": "security",
+			"required": false,
+			"reason": "Unofficial Starlark analyzer (flisk-sh/codeql-starlark); report-only SARIF for Tiltfiles and *.star on every PR and weekly",
+			"owner": "maintainers"
+		},
+		{
 			"workflow": "contributor-merged.yml",
 			"job": "thank",
 			"tier": "bot",
@@ -271,6 +279,14 @@
 			"tier": "gate",
 			"required": false,
 			"reason": "DCO sign-off on every PR; concurrency tracked in #1286",
+			"owner": "maintainers"
+		},
+		{
+			"workflow": "dependabot-automerge.yml",
+			"job": "automerge",
+			"tier": "bot",
+			"required": false,
+			"reason": "Enables squash auto-merge on Dependabot PRs once required checks pass",
 			"owner": "maintainers"
 		},
 		{
@@ -476,6 +492,14 @@
 			"tier": "release",
 			"required": false,
 			"reason": "Tags the merged version bump and publishes the GitHub release draft (#1657)",
+			"owner": "maintainers"
+		},
+		{
+			"workflow": "sign-release.yml",
+			"job": "sign",
+			"tier": "release",
+			"required": false,
+			"reason": "Signs the checksums of an already-published version that release-binaries.yml left unsigned (Scorecard Signed-Releases)",
 			"owner": "maintainers"
 		},
 		{

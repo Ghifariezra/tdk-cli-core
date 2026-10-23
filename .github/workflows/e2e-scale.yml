@@ -3,7 +3,7 @@
 # The full 100-service boot (about 107 images, up to 100 minutes) is too heavy to run per pull request, so the gate boots the
 # one-stack scope (finance, about 16 services); the full boot runs in e2e-scale-full.yml (manual and weekly).
 # The suite declares no secrets (needsSecrets: []), so nothing on a pull request needs a license secret and no step is skipped.
-name: 🏭 e2e-scale
+name: ⚖️ E2E | Scale
 
 on:
   # Not on pull requests: the scale gate is the slowest per-PR cost, so it runs on the merge queue and nightly.

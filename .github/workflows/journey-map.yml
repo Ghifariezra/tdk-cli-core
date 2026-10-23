@@ -1,7 +1,7 @@
 # Refreshes docs/journey/map.svg and hacktoberfest.svg from the `island: ...` issue labels every day.
 # Also adds the Hacktoberfest map to every open `hacktoberfest` issue (daily, and when the label is applied).
 # Run manually from the Actions tab too.
-name: 🗺️ journey map
+name: 🗺️ Community | Journey map
 
 on:
   schedule:

@@ -1,4 +1,4 @@
-name: 🏅 OSS score gate
+name: 🏅 CI | OSS score gate
 
 # Fails the run when the repo's published OpenSSF Scorecard is below MIN_SCORE. The score only changes when Scorecard
 # publishes (main on push and weekly), so this runs on those events, not on every pull request.
@@ -29,18 +29,9 @@ jobs:
       - name: Read the published Scorecard score
         env:
           REPO: ${{ github.repository }}
-          # Scorecard keys its published scores by the repository path the project
-          # was first indexed under. This repo was renamed from tdk-landscape/tdk-cli-core
-          # to flisk-sh/flisk, so the new path 404s until Scorecard re-indexes it.
-          # The fallback is that key, not a stale name: it has to stay until the score
-          # is published under flisk-sh/flisk, and it can go then.
-          REPO_FALLBACK: "tdk-landscape/tdk-cli-core"
         run: |
           set -euo pipefail
-          json=$(curl -fsSL --retry 3 "https://api.securityscorecards.dev/projects/github.com/${REPO}" || true)
-          if [ -z "${json:-}" ]; then
-            json=$(curl -fsSL --retry 3 "https://api.securityscorecards.dev/projects/github.com/${REPO_FALLBACK}")
-          fi
+          json=$(curl -fsSL --retry 3 "https://api.securityscorecards.dev/projects/github.com/${REPO}")
           score=$(printf '%s' "$json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).score')
           date=$(printf '%s' "$json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).date')
           echo "Published OpenSSF Scorecard: ${score} (as of ${date}); minimum ${MIN_SCORE}."

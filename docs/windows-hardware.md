@@ -85,12 +85,12 @@ The design for first-class Windows support asks for a human acceptance run on a 
 | 2 | `tdk --version` prints the release version | WH3 | |
 | 3 | `tdk runtime --check-assets` finds the bundled engine | WH3 | |
 | 4 | `tdk doctor` refuses and points at WSL2 Ubuntu | WH4 | |
-| 5 | `tdk up` and `tdk up --dry-run` refuse and start nothing | WH4 | |
+| 5 | `flisk up` and `flisk up --dry-run` refuse and start nothing | WH4 | |
 | 6 | The exe runs from a path with a space and resolves through PATH | WH5 | |
 | 7 | `tdk project --yes` scaffolds a project in a directory with a space | WH5 (needs Bun) | |
 | 8 | `tdk demo` refuses with WSL2 guidance and clones nothing | WH6 (the published release); `platforms/windows` W4 (the current build) | |
 | 9 | Under WSL2 (the supported Windows path) `tdk demo` starts the stack and every service answers | `platforms/wsl2` WS6 (`scripts/wsl2-demo.sh`) | |
-| 10 | `tdk upgrade --dry-run` reports the standalone binary installation | manual | |
+| 10 | `flisk upgrade --dry-run` reports the standalone binary installation | manual | |
 | 11 | The npm installation works: `npm install -g @flisk-sh/flisk` | manual | |
 | 12 | WSL2 Ubuntu still boots the stack | `tests/e2e/platforms/wsl2` | |
 | 13 | macOS and Linux are unaffected | the usual CI | |

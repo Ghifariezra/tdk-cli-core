@@ -13,7 +13,8 @@
 set -euo pipefail
 
 readonly PACKAGE="@flisk-sh/flisk"
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 
 if [ "$#" -ne 2 ]; then
   echo "usage: bash scripts/package-lifecycle-smoke.sh <tarball> <cli/package.json>" >&2

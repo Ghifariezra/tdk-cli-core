@@ -116,4 +116,74 @@ describe("flisk runtime", () => {
     expect(result.templateErrors).toEqual([]);
     expect(process.exitCode).toBe(1);
   });
+
+  it("prints success message in text mode when all assets and templates are valid", async () => {
+    createCompleteAssetRoot(tempDir);
+    templateEngine.findCliAssetRoot.mockReturnValue(tempDir);
+    templateEngine.loadTemplate.mockReturnValue("");
+
+    const { stdout, stderr } = await runRuntime(["--check-assets"]);
+
+    expect(stdout).toContain(`Flisk runtime assets found at ${resolve(tempDir)}`);
+    expect(stderr).toBe("");
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("prints incomplete error message in text mode when assets are missing", async () => {
+    templateEngine.findCliAssetRoot.mockReturnValue(tempDir);
+
+    const { stdout, stderr } = await runRuntime(["--check-assets"]);
+
+    expect(stdout).toBe("");
+    expect(stderr).toContain(`Incomplete Flisk runtime assets at ${resolve(tempDir)}`);
+    expect(stderr).toContain("Missing: Tiltfile");
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("prints not found error in text mode when findCliAssetRoot returns null", async () => {
+    templateEngine.findCliAssetRoot.mockReturnValue(null);
+
+    const { stdout, stderr } = await runRuntime(["--check-assets"]);
+
+    expect(stdout).toBe("");
+    expect(stderr).toContain("Flisk runtime assets not found");
+    expect(stderr).toContain("Missing: Tiltfile");
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("catches template loading errors and reports them in JSON mode", async () => {
+    createCompleteAssetRoot(tempDir);
+    templateEngine.findCliAssetRoot.mockReturnValue(tempDir);
+    templateEngine.loadTemplate.mockImplementation((name) => {
+      if (name === "Tiltfile.hbs") throw new Error("corrupted template syntax");
+      return "";
+    });
+
+    const { stdout } = await runRuntime(["--check-assets", "--json"]);
+    const result = JSON.parse(stdout) as CheckAssetsResult;
+
+    expect(result.ok).toBe(false);
+    expect(result.templateErrors).toEqual(["corrupted template syntax"]);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("validates asset types distinguishing files from directories", async () => {
+    // Create Tiltfile as directory (should be file) and engine as file (should be directory)
+    createCompleteAssetRoot(tempDir);
+    rmSync(join(tempDir, "Tiltfile"));
+    mkdirSync(join(tempDir, "Tiltfile")); // wrong type
+    rmSync(join(tempDir, "engine"), { recursive: true, force: true });
+    writeFileSync(join(tempDir, "engine"), "not a directory"); // wrong type
+
+    templateEngine.findCliAssetRoot.mockReturnValue(tempDir);
+
+    const { stdout } = await runRuntime(["--check-assets", "--json"]);
+    const result = JSON.parse(stdout) as CheckAssetsResult;
+
+    expect(result.ok).toBe(false);
+    expect(result.missing).toContain("Tiltfile");
+    expect(result.missing).toContain("engine");
+    expect(result.missing).not.toContain("discovery");
+    expect(process.exitCode).toBe(1);
+  });
 });

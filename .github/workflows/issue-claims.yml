@@ -1,4 +1,4 @@
-name: 🙋 Issue claims
+name: 🙋 Community | Issue claims
 
 # "I'll take this" on an issue assigns the commenter and adds the `claimed` label, so
 # open issues show who is on them. A daily sweep nudges claims with no PR after 14 days

@@ -83,6 +83,7 @@ volumes:
             vendored_gateway_dir="tdk-cli-ext/engine/assets/docker/wake-gateway",
             tilt_dev_dir=os.environ.get("HOME", "") + "/.tilt-dev",
             project_root_mount=_project_root_mount(),
+            docker_socket_gid=_docker_socket_gid(),
         ) if sablier_enabled else "",
         dynamic_dir_name=PlatformDockerConstants.TRAEFIK_DYNAMIC_DIR_REL.split("/")[-1],
         vendored_gateway_dir="tdk-cli-ext/engine/assets/docker/wake-gateway",
@@ -93,6 +94,16 @@ volumes:
         log_level=log_level,
         plugins_volume=plugins_volume,
     )
+
+
+def _docker_socket_gid():
+    """Group ID the wake gateway joins to reach /var/run/docker.sock.
+
+    Docker Desktop exposes the socket as root:root (gid 0). On Linux hosts it
+    is usually root:docker, whose gid varies, so set TDK_DOCKER_SOCKET_GID to
+    the socket's gid there (`stat -c %g /var/run/docker.sock`).
+    """
+    return os.environ.get("TDK_DOCKER_SOCKET_GID", "0")
 
 
 def _project_root_mount():
@@ -162,9 +173,13 @@ _SABLIER_SERVICES = """  sablier:
       - TILT_PORT=10350
       - SABLIER_URL=http://sablier:10000
       - PORT={gateway_port}
+    # Non-root (see the Dockerfile): the Docker socket is root-owned, so the
+    # gateway joins the socket's group instead of running as root.
+    group_add:
+      - "{docker_socket_gid}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - {tilt_dev_dir}:/root/.tilt-dev:ro{project_root_mount}
+      - {tilt_dev_dir}:/home/bun/.tilt-dev:ro{project_root_mount}
     networks:
       - traefik-public
 

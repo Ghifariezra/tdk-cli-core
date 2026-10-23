@@ -23,6 +23,13 @@ RUN apk add --no-cache docker-cli docker-cli-compose curl gcompat \
 WORKDIR /app
 COPY decide.ts server.ts ./
 
+# Run as the image's unprivileged `bun` user. Docker socket access comes from
+# the supplementary group in traefik_standalone.star (group_add), not from root.
+# HOME points at bun's home so `tilt trigger` finds the session token mounted
+# at $HOME/.tilt-dev.
+ENV HOME=/home/bun
+USER bun
+
 EXPOSE 9999
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD curl --fail --silent http://127.0.0.1:${PORT:-9999}/health || exit 1
 CMD ["bun", "run", "server.ts"]

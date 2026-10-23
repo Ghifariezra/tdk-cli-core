@@ -1,7 +1,7 @@
 # Keep clean PR branches based on main without checking out or executing PR code.
 # The pull_request_target job only calls GitHub's update-branch API. A conflict
 # or missing fork permission is reported for human follow-up.
-name: 🔀 Keep PR branches current
+name: ⬆️ Automation | Keep PR branches current
 
 on:
   push:

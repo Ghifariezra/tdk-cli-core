@@ -510,7 +510,7 @@ def load_yaml_manifests_as_resources():
         
         local_resource(
             name=resource_name,
-            cmd="echo 'YAML manifest: " + yaml_path_display + "'",
+            cmd=['echo', 'YAML manifest: ' + yaml_path_display],
             deps=[yaml_file],
             labels=["yaml-manifest"],
         )

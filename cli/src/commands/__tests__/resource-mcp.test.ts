@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -17,29 +17,41 @@ import {
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const cliBin = join(repoRoot, "cli", "bin", "tdk.js");
 
-function flisk(args: string[], cwd: string, input = "y\n") {
-  return spawnSync(process.execPath, [cliBin, ...args], {
-    cwd,
-    encoding: "utf-8",
-    input,
-    env: { ...process.env, TDK_EXTENSION_SOURCE: repoRoot },
+interface CliResult {
+  status: number;
+  stdout: string;
+  stderr: string;
+}
+
+function flisk(args: string[], cwd: string, input = "y\n"): Promise<CliResult> {
+  return new Promise((resolve) => {
+    const child = execFile(
+      process.execPath,
+      [cliBin, ...args],
+      { cwd, encoding: "utf-8", env: { ...process.env, TDK_EXTENSION_SOURCE: repoRoot } },
+      (error, stdout, stderr) => {
+        const status = error ? (typeof error.code === "number" ? error.code : 1) : 0;
+        resolve({ status, stdout, stderr });
+      },
+    );
+    child.stdin?.end(input);
   });
 }
 
 describe("the mcp resource type", () => {
-  it("is a known, creatable type with the scripts and port range of an HTTP service", () => {
+  it("is a known, creatable type with the scripts and port range of an HTTP service", async () => {
     expect(CREATABLE_RESOURCE_TYPES).toContain("mcp");
     expect(VALID_RESOURCE_TYPES).toContain("mcp");
     expect(REQUIRED_PACKAGE_SCRIPTS.mcp).toEqual(["dev", "build", "start"]);
     expect(PORT_RANGES.mcp).toMatchObject({ min: 4000, max: 5999 });
   });
 
-  it("is not a backend --framework choice", () => {
+  it("is not a backend --framework choice", async () => {
     expect(Object.keys(BACKEND_FRAMEWORKS)).not.toContain("mcp");
     expect(() => resolveBackendFramework("backend", "mcp")).toThrow(/Unknown backend framework/);
   });
 
-  it("has a fixed scaffold: no framework or language choice", () => {
+  it("has a fixed scaffold: no framework or language choice", async () => {
     expect(resolveBackendFramework("mcp")?.id).toBe("mcp");
     expect(() => resolveBackendFramework("mcp", "express")).toThrow(
       /cannot be combined with --type mcp/,
@@ -49,7 +61,7 @@ describe("the mcp resource type", () => {
     ).toThrow(/cannot be combined with --type mcp/);
   });
 
-  it("is accepted by the service schema, and the engine runs it as a backend", () => {
+  it("is accepted by the service schema, and the engine runs it as a backend", async () => {
     const schema = JSON.parse(
       readFileSync(join(repoRoot, "engine", "schemas", "service-schema.json"), "utf-8"),
     );
@@ -73,7 +85,7 @@ describe("the mcp resource type", () => {
   });
 });
 
-describe("flisk resource --type mcp", () => {
+describe.concurrent("flisk resource --type mcp", () => {
   let projectRoot = "";
 
   beforeAll(() => {
@@ -92,8 +104,11 @@ describe("flisk resource --type mcp", () => {
   const json = (name: string, file: string) =>
     JSON.parse(readFileSync(join(dir(name), file), "utf-8"));
 
-  it("scaffolds a Model Context Protocol server on the shared Bun image", () => {
-    const result = flisk(["resource", "docs-mcp", "--type", "mcp", "--stack", "shop"], projectRoot);
+  it("scaffolds a Model Context Protocol server on the shared Bun image", async () => {
+    const result = await flisk(
+      ["resource", "docs-mcp", "--type", "mcp", "--stack", "shop"],
+      projectRoot,
+    );
     expect(result.status, result.stderr).toBe(0);
 
     const service = json("docs-mcp", "service.json");
@@ -135,8 +150,8 @@ describe("flisk resource --type mcp", () => {
     expect(index).not.toContain("hono");
   }, 30000);
 
-  it("rejects --framework and --language, which have no meaning for an mcp resource", () => {
-    const framework = flisk(
+  it("rejects --framework and --language, which have no meaning for an mcp resource", async () => {
+    const framework = await flisk(
       ["resource", "bad-fw", "--type", "mcp", "--framework", "express", "--stack", "shop"],
       projectRoot,
     );
@@ -146,7 +161,7 @@ describe("flisk resource --type mcp", () => {
     );
     expect(existsSync(dir("bad-fw"))).toBe(false);
 
-    const language = flisk(
+    const language = await flisk(
       ["resource", "bad-lang", "--type", "mcp", "--language", "python", "--stack", "shop"],
       projectRoot,
     );

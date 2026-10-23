@@ -5,7 +5,7 @@
 # The hardware job never runs on a pull request: a self-hosted runner would execute untrusted pull-request code. It runs
 # when a maintainer dispatches this workflow by hand on a machine that has a runner registered with the labels
 # "self-hosted", "windows" and "x64". The hosted job runs on every pull request that touches the paths below.
-name: 🪟 Platforms hardware E2E
+name: 🔌 E2E | Platforms hardware
 
 on:
   workflow_dispatch:

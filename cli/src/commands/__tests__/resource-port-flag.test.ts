@@ -106,5 +106,91 @@ describe("--port for every port-assigned resource type", () => {
 
   it("falls back to the next free port when --port is absent", () => {
     expect(resolveResourcePort("worker", undefined, 6005, [])).toBe(6005);
+    expect(resolveResourcePort("backend", "", 4005, [])).toBe(4005);
+  });
+
+  describe("resolveResourcePort across all types and boundaries", () => {
+    it.each([
+      ["frontend", "3000", 3000],
+      ["frontend", "3999", 3999],
+      ["backend", "4000", 4000],
+      ["backend", "4999", 4999],
+      ["worker", "6000", 6000],
+      ["worker", "6999", 6999],
+      ["agent", "4500", 4500],
+      ["mcp", "4800", 4800],
+      ["bring-your-own", "5000", 5000],
+    ] as const)("accepts valid port %s for %s", (type, portStr, expected) => {
+      expect(resolveResourcePort(type, portStr, 4000, [])).toBe(expected);
+    });
+
+    it("refuses out-of-boundary ports for frontend", () => {
+      expect(() => resolveResourcePort("frontend", "2999", 3000, [])).toThrow(
+        "--port must be an integer from 3000 through 3999.",
+      );
+      expect(() => resolveResourcePort("frontend", "4000", 3000, [])).toThrow(
+        "--port must be an integer from 3000 through 3999.",
+      );
+    });
+
+    it("refuses out-of-boundary ports for backend", () => {
+      expect(() => resolveResourcePort("backend", "3999", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 4999.",
+      );
+      expect(() => resolveResourcePort("backend", "5000", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 4999.",
+      );
+    });
+
+    it("refuses out-of-boundary ports for agent and mcp", () => {
+      expect(() => resolveResourcePort("agent", "3999", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 5999.",
+      );
+      expect(() => resolveResourcePort("agent", "6000", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 5999.",
+      );
+      expect(() => resolveResourcePort("mcp", "3999", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 5999.",
+      );
+      expect(() => resolveResourcePort("mcp", "6000", 4000, [])).toThrow(
+        "--port must be an integer from 4000 through 5999.",
+      );
+    });
+
+    it("refuses out-of-boundary ports for worker", () => {
+      expect(() => resolveResourcePort("worker", "5999", 6000, [])).toThrow(
+        "--port must be an integer from 6000 through 6999.",
+      );
+      expect(() => resolveResourcePort("worker", "7000", 6000, [])).toThrow(
+        "--port must be an integer from 6000 through 6999.",
+      );
+    });
+
+    it("rejects non-digit strings, floats and whitespace-padded port numbers", () => {
+      for (const invalid of ["abc", "4000.5", "-4000", " 4000 ", "4000px", "NaN"]) {
+        expect(() => resolveResourcePort("backend", invalid, 4000, [])).toThrow(
+          "--port must be an integer from 4000 through 4999.",
+        );
+      }
+    });
+
+    it("reports BYO-specific collision wording when conflicting with another resource", () => {
+      expect(() =>
+        resolveResourcePort("bring-your-own", "4500", 4000, [{ config: { port: 4500 } }]),
+      ).toThrow("BYO port 4500 is already assigned to another resource.");
+    });
+
+    it("safely handles resources without config or with undefined ports during collision checks", () => {
+      const existing = [
+        {},
+        { config: undefined },
+        { config: { port: undefined } },
+        { config: { port: 4200 } },
+      ];
+      expect(resolveResourcePort("backend", "4100", 4000, existing)).toBe(4100);
+      expect(() => resolveResourcePort("backend", "4200", 4000, existing)).toThrow(
+        "Port 4200 is already assigned to another resource.",
+      );
+    });
   });
 });

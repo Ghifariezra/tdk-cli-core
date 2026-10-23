@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
 // Stops duplicated test helpers from coming back (#1402, part of #1388). A test file under cli/src/**/__tests__ that
-// declares one of the shared helpers (runTdk, createTempProject, makeResource, ...) fails, unless the file and helper
+// declares one of the shared helpers (runFlisk, createTempProject, makeResource, ...) fails, unless the file and helper
 // are listed in cli/test-helper-allowlist.txt as "<file> <helper>". The list only shrinks: a new copy fails, and a
 // listed entry that no longer duplicates anything fails until its line is removed.
 //   node scripts/check-test-helper-allowlist.mjs [--root <repo dir>]
@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 // Helpers that live in cli/src/test-support. A name here is a duplicate when a test file declares it.
 export const HELPERS = [
+  "runFlisk",
   "runTdk",
   "runCli",
   "createProject",
@@ -26,7 +27,7 @@ export const HELPERS = [
   "cliBin",
 ];
 // The test-support export to import instead, where the names differ.
-const SHARED = { cliBin: "tdkBin", evaluate: "evaluateStarlark", resource: "makeResource" };
+const SHARED = { runTdk: "runFlisk", cliBin: "fliskBin", evaluate: "evaluateStarlark", resource: "makeResource" };
 export const ALLOWLIST = "cli/test-helper-allowlist.txt";
 const TEST_DIR = "cli/src";
 

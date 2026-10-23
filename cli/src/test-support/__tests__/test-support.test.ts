@@ -3,31 +3,31 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { createTempDir, createTempProject, parseEnvelope, runTdk } from "../index.js";
+import { createTempDir, createTempProject, parseEnvelope, runFlisk } from "../index.js";
 
-describe("runTdk", () => {
+describe("runFlisk", () => {
   it("returns status, stdout and stderr of a finished run", () => {
-    const result = runTdk(["--version"], { cwd: createTempDir() });
+    const result = runFlisk(["--version"], { cwd: createTempDir() });
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
     expect(result.stderr).toBe("");
   });
 
   it("returns a non-zero exit code instead of throwing", () => {
-    const result = runTdk(["stacks", "--json"], { cwd: createTempDir() });
+    const result = runFlisk(["stacks", "--json"], { cwd: createTempDir() });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Could not find project root");
   });
 
   it("throws with the command and directory when the spawn fails", () => {
     const missing = path.join(createTempDir(), "does-not-exist");
-    expect(() => runTdk(["stacks"], { cwd: missing })).toThrow(
+    expect(() => runFlisk(["stacks"], { cwd: missing })).toThrow(
       /Could not run `flisk stacks`.*ENOENT/s,
     );
   });
 
   it("throws when the child is killed by the timeout", () => {
-    expect(() => runTdk(["--version"], { cwd: createTempDir(), timeout: 1 })).toThrow(
+    expect(() => runFlisk(["--version"], { cwd: createTempDir(), timeout: 1 })).toThrow(
       /Could not run|did not exit normally/,
     );
   });
@@ -35,9 +35,9 @@ describe("runTdk", () => {
   it("sets NO_COLOR and lets a test remove or override variables", () => {
     const base = { cwd: createTempDir() };
     const project = createTempProject();
-    const plain = runTdk(["projects", "--json"], { cwd: project });
+    const plain = runFlisk(["projects", "--json"], { cwd: project });
     expect(plain.stdout).not.toContain("\u001b[");
-    expect(runTdk(["--version"], { ...base, env: { NO_COLOR: undefined } }).status).toBe(0);
+    expect(runFlisk(["--version"], { ...base, env: { NO_COLOR: undefined } }).status).toBe(0);
   });
 });
 
@@ -69,7 +69,7 @@ describe("createTempProject", () => {
   it("omits the .tdk folder when projectJson is null, so flisk finds no project", () => {
     const root = createTempProject({ projectJson: null });
     expect(fs.existsSync(path.join(root, ".tdk"))).toBe(false);
-    const result = runTdk(["stacks", "--json"], { cwd: root });
+    const result = runFlisk(["stacks", "--json"], { cwd: root });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Could not find project root");
   });
@@ -78,7 +78,7 @@ describe("createTempProject", () => {
   it("creates a project that flisk can read", () => {
     const root = createTempProject({ stacks: { api: { gateway: { appType: "backend" } } } });
     created.push(root);
-    const envelope = parseEnvelope(runTdk(["stacks", "--json"], { cwd: root }).stdout);
+    const envelope = parseEnvelope(runFlisk(["stacks", "--json"], { cwd: root }).stdout);
     expect(envelope.data.stacks).toMatchObject([{ name: "api", resourceCount: 1 }]);
   });
 

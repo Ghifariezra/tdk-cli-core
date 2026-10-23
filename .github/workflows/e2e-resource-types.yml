@@ -2,7 +2,7 @@
 # suites that run for the event; each matrix leg boots one suite's stack and runs all of its cases. Replaces agent-e2e.yml.
 # On a pull request and nightly a leg tests the packed CLI of the checkout (main, nightly), so a regression on main shows up
 # before a release ships it. After a release it tests the published npm package. The gate job always runs and fails when the plan or any selected leg failed.
-name: 🤖 Resource-type E2E
+name: 🧩 E2E | Resource types
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ on:
   # Prove each release right after it is published. Read-only token, no secrets, main branch only; it checks out main itself
   # rather than the triggering run's ref, so nothing untrusted is executed.
   workflow_run: # zizmor: ignore[dangerous-triggers]
-    workflows: ["Release binaries and npm package"]
+    workflows: ["🚀 Release | Binaries and npm package"]
     types: [completed]
     branches: [main]
 

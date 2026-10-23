@@ -7,7 +7,7 @@
 #
 # Manual and daily (04:00 UTC). Separate from the ERP scale test on purpose: different
 # size, different timeout, and "healthy" means something else here.
-name: 🍽️ Real example apps (nightly)
+name: 🏗️ E2E | Real example apps (nightly)
 
 on:
   workflow_dispatch:

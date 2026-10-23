@@ -1,7 +1,7 @@
 # Compares the main merge queue ruleset and the release ruleset with their checked-in snapshots, and opens one issue when they differ.
 # Runs on the default branch only and never checks out pull request code, so the token that reads branch protection is
 # never exposed to a pull request. Pull request runs check the committed ruleset snapshots in .github/rulesets instead.
-name: 🔐 Required checks drift
+name: 🧾 CI | Required checks drift
 
 on:
   schedule:

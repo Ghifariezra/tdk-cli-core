@@ -155,25 +155,26 @@ def create_db_status_resource(should_enable_db_management):
     Create a local_resource for database virtualization status.
     """
     return local_resource('db-virtualization-status',
-        cmd='''
+        # Fixed script; names are passed as argv ($1 = host, $2 = user, $3 = database, $4 = project prefix).
+        cmd=['sh', '-c', '''
 echo "🗃️ ═══════════════════════════════════════════════════════════════"
 echo "🗃️  DATABASE VIRTUALIZATION STATUS (BigTech Pattern)"
 echo "🗃️ ═══════════════════════════════════════════════════════════════"
 echo ""
 
-if ! docker exec ''' + PlatformDockerConstants.DB_HOST + ''' pg_isready -U ''' + PlatformDockerConstants.DB_USER + ''' -d ''' + PlatformDockerConstants.get_db_name('example') + ''' >/dev/null 2>&1; then
+if ! docker exec $1 pg_isready -U $2 -d $3 >/dev/null 2>&1; then
   echo "⚠️  PostgreSQL container not running"
   exit 0
 fi
 
 echo "📊 LOGICAL DATABASES:"
-docker exec ''' + PlatformDockerConstants.DB_HOST + ''' psql -U ''' + PlatformDockerConstants.DB_USER + ''' -d ''' + PlatformDockerConstants.get_db_name('example') + ''' -c "
+docker exec $1 psql -U $2 -d $3 -c "
   SELECT 
     datname as \\"Database Name\\",
     pg_size_pretty(pg_database_size(datname)) as \\"Size\\",
     (SELECT count(*) FROM pg_stat_activity WHERE datname = d.datname) as \\"Active Connections\\"
   FROM pg_database d 
-  WHERE datname LIKE \'''' + PlatformDockerConstants.PROJECT_NAME + '''_%\' 
+  WHERE datname LIKE '$4_%' 
   ORDER BY datname;
 "
 
@@ -184,7 +185,7 @@ echo "   ✅ Virtualized: 1 PostgreSQL container × ~512MB = ~512MB RAM"
 echo "   📉 SAVINGS: ~98% RAM reduction!"
 echo ""
 echo "🗃️ ═══════════════════════════════════════════════════════════════"
-''',
+''', 'sh', PlatformDockerConstants.DB_HOST, PlatformDockerConstants.DB_USER, PlatformDockerConstants.get_db_name('example'), PlatformDockerConstants.PROJECT_NAME],
         labels=['infra.database', 'virtualization'],
         resource_deps=['postgres'] if should_enable_db_management else [],
         auto_init=False

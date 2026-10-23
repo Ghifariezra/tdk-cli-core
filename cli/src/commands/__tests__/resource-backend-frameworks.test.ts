@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Flisk Landscape contributors
 // SPDX-License-Identifier: MIT
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -18,12 +18,24 @@ import { BACKEND_LANGUAGES } from "../../backend-languages/registry.js";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const cliBin = join(repoRoot, "cli", "bin", "tdk.js");
 
-function flisk(args: string[], cwd: string, input = "y\n") {
-  return spawnSync(process.execPath, [cliBin, ...args], {
-    cwd,
-    encoding: "utf-8",
-    input,
-    env: { ...process.env, TDK_EXTENSION_SOURCE: repoRoot },
+interface CliResult {
+  status: number;
+  stdout: string;
+  stderr: string;
+}
+
+function flisk(args: string[], cwd: string, input = "y\n"): Promise<CliResult> {
+  return new Promise((resolve) => {
+    const child = execFile(
+      process.execPath,
+      [cliBin, ...args],
+      { cwd, encoding: "utf-8", env: { ...process.env, TDK_EXTENSION_SOURCE: repoRoot } },
+      (error, stdout, stderr) => {
+        const status = error ? (typeof error.code === "number" ? error.code : 1) : 0;
+        resolve({ status, stdout, stderr });
+      },
+    );
+    child.stdin?.end(input);
   });
 }
 
@@ -214,7 +226,7 @@ describe("backend framework inventory", () => {
   });
 });
 
-describe("flisk resource --framework on a backend", () => {
+describe.concurrent("flisk resource --framework on a backend", () => {
   let projectRoot = "";
 
   beforeAll(() => {
@@ -233,8 +245,8 @@ describe("flisk resource --framework on a backend", () => {
   const json = (name: string, file: string) =>
     JSON.parse(readFileSync(join(dir(name), file), "utf-8"));
 
-  it("scaffolds Express with its own source and dependencies, on the shared Bun image", () => {
-    const result = flisk(
+  it("scaffolds Express with its own source and dependencies, on the shared Bun image", async () => {
+    const result = await flisk(
       ["resource", "express-api", "--type", "backend", "--framework", "express", "--stack", "shop"],
       projectRoot,
     );
@@ -260,8 +272,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(index).not.toContain("Hono");
   }, 15000);
 
-  it("scaffolds Elysia on the shared Bun image with its own source and dependencies", () => {
-    const result = flisk(
+  it("scaffolds Elysia on the shared Bun image with its own source and dependencies", async () => {
+    const result = await flisk(
       ["resource", "elysia-api", "--type", "backend", "--framework", "elysia", "--stack", "shop"],
       projectRoot,
     );
@@ -280,8 +292,8 @@ describe("flisk resource --framework on a backend", () => {
     );
   }, 15000);
 
-  it("scaffolds Fastify on the shared Bun image with its own source and dependencies", () => {
-    const result = flisk(
+  it("scaffolds Fastify on the shared Bun image with its own source and dependencies", async () => {
+    const result = await flisk(
       ["resource", "fastify-api", "--type", "backend", "--framework", "fastify", "--stack", "shop"],
       projectRoot,
     );
@@ -300,8 +312,8 @@ describe("flisk resource --framework on a backend", () => {
     );
   }, 15000);
 
-  it("scaffolds NestJS with decorator options in its tsconfig, on the shared Bun image", () => {
-    const result = flisk(
+  it("scaffolds NestJS with decorator options in its tsconfig, on the shared Bun image", async () => {
+    const result = await flisk(
       ["resource", "nest-api", "--type", "backend", "--framework", "nestjs", "--stack", "shop"],
       projectRoot,
     );
@@ -320,8 +332,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(tsconfig.compilerOptions.emitDecoratorMetadata).toBe(true);
   }, 15000);
 
-  it("scaffolds Koa on the shared Bun image with its own source and dependencies", () => {
-    const result = flisk(
+  it("scaffolds Koa on the shared Bun image with its own source and dependencies", async () => {
+    const result = await flisk(
       ["resource", "koa-api", "--type", "backend", "--framework", "koa", "--stack", "shop"],
       projectRoot,
     );
@@ -336,8 +348,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(readFileSync(join(dir("koa-api"), "src", "index.ts"), "utf-8")).toContain("from 'koa'");
   }, 15000);
 
-  it("scaffolds h3 on the shared Bun image with its own source and dependency", () => {
-    const result = flisk(
+  it("scaffolds h3 on the shared Bun image with its own source and dependency", async () => {
+    const result = await flisk(
       ["resource", "h3-api", "--type", "backend", "--framework", "h3", "--stack", "shop"],
       projectRoot,
     );
@@ -351,8 +363,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(readFileSync(join(dir("h3-api"), "src", "index.ts"), "utf-8")).toContain("from 'h3'");
   }, 30000);
 
-  it("persists an explicit hono selection and keeps the Hono source", () => {
-    const result = flisk(
+  it("persists an explicit hono selection and keeps the Hono source", async () => {
+    const result = await flisk(
       ["resource", "hono-api", "--type", "backend", "--framework", "hono", "--stack", "shop"],
       projectRoot,
     );
@@ -362,8 +374,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(readFileSync(join(dir("hono-api"), "src", "index.ts"), "utf-8")).toContain("new Hono()");
   }, 15000);
 
-  it("leaves a backend without --framework on Hono with no framework field", () => {
-    const result = flisk(
+  it("leaves a backend without --framework on Hono with no framework field", async () => {
+    const result = await flisk(
       ["resource", "plain-api", "--type", "backend", "--stack", "shop"],
       projectRoot,
     );
@@ -376,8 +388,8 @@ describe("flisk resource --framework on a backend", () => {
     expect(json("plain-api", "package.json").dependencies).toHaveProperty("hono");
   }, 15000);
 
-  it("rejects an unknown framework, Python, and other resource types before writing", () => {
-    const unknown = flisk(
+  it("rejects an unknown framework, Python, and other resource types before writing", async () => {
+    const unknown = await flisk(
       ["resource", "bad-api", "--type", "backend", "--framework", "sinatra", "--stack", "shop"],
       projectRoot,
     );
@@ -385,7 +397,7 @@ describe("flisk resource --framework on a backend", () => {
     expect(`${unknown.stdout}${unknown.stderr}`).toMatch(/Unknown backend framework "sinatra"/);
     expect(existsSync(dir("bad-api"))).toBe(false);
 
-    const python = flisk(
+    const python = await flisk(
       [
         "resource",
         "py-express",
@@ -404,7 +416,7 @@ describe("flisk resource --framework on a backend", () => {
     expect(`${python.stdout}${python.stderr}`).toMatch(/cannot be combined with --language python/);
     expect(existsSync(dir("py-express"))).toBe(false);
 
-    const worker = flisk(
+    const worker = await flisk(
       ["resource", "job", "--type", "worker", "--framework", "express", "--stack", "shop"],
       projectRoot,
     );

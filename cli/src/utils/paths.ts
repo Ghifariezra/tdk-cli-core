@@ -7,6 +7,13 @@ import packageJson from "../../package.json" with { type: "json" };
 import type { JsonObject, PackageInfo } from "../types/index.js";
 import { PROJECT_JSON } from "./constants.js";
 
+/**
+ * Find the nearest enclosing Flisk project root by walking up from `startDir` until a
+ * `.tdk/project.json` marker is found. Stops at the filesystem root without treating the
+ * root itself as a project.
+ * @param startDir - Directory to start searching from (default: cwd)
+ * @returns Absolute path of the project root, or null if no `.tdk/project.json` exists on any parent
+ */
 export function findProjectRoot(startDir: string = cwd()): string | null {
   let currentDir = resolve(startDir);
   const root = resolve("/");
@@ -51,6 +58,12 @@ function getPackageInfo(): PackageInfo {
   return packageCache;
 }
 
+/**
+ * Return the CLI's own package version from the bundled `package.json`, cached after the
+ * first read (the JSON import is resolved at compile time by Bun, so this never touches
+ * the filesystem at runtime).
+ * @returns The version string of the CLI package
+ */
 export function getPackageVersion(): string {
   return getPackageInfo().version;
 }

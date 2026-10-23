@@ -9,7 +9,7 @@ import {
   createTempDir,
   createTempProject,
   runCommandInProcess,
-  runTdk,
+  runFlisk,
 } from "../../test-support/index.js";
 import { YES_OPTION_DESCRIPTION } from "../../utils/command-helpers.js";
 import { configCommand } from "../config.js";
@@ -282,7 +282,7 @@ describe("flag contract: --json", () => {
   it.each(JSON_MATRIX)(
     "flisk $command --json outside a project fails with a null-data envelope",
     ({ command }) => {
-      const result = runTdk([...command, "--json"], { cwd: createTempDir() });
+      const result = runFlisk([...command, "--json"], { cwd: createTempDir() });
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("Could not find project root");
       expect(result.stderr).not.toMatch(/^\{/m);
@@ -295,7 +295,7 @@ describe("flag contract: --json", () => {
 
 describe("flag contract: --json for doctor", () => {
   it(`${DOCTOR_JSON.site} prints one envelope with no project`, () => {
-    const result = runTdk([...DOCTOR_JSON.command, "--json"], {
+    const result = runFlisk([...DOCTOR_JSON.command, "--json"], {
       cwd: createTempDir(),
       timeout: 60_000,
     });
@@ -309,7 +309,7 @@ describe("flag contract: --json for doctor", () => {
 describe("flag contract: --json error envelope for agent sessions", () => {
   it(`${AGENT_SESSIONS_JSON.site} without --session-id fails with a null-data envelope`, () => {
     const root = createTempProject(AGENT_SESSIONS_JSON.project);
-    const result = runTdk([...AGENT_SESSIONS_JSON.command, "--json"], { cwd: root });
+    const result = runFlisk([...AGENT_SESSIONS_JSON.command, "--json"], { cwd: root });
     expect(result.status).toBe(1);
     expect(result.stderr).not.toMatch(/^\{/m);
     const envelope = parseOneEnvelope(result.stdout);
@@ -377,7 +377,7 @@ describe("flag contract: --yes", () => {
     "flisk $site runs without a prompt when stdin is closed",
     ({ command, project }) => {
       const root = createTempProject(project);
-      const result = runTdk([...command, "--yes"], { cwd: root, input: "", timeout: 60_000 });
+      const result = runFlisk([...command, "--yes"], { cwd: root, input: "", timeout: 60_000 });
       expect(result.status).toBe(0);
       expect(`${result.stdout}${result.stderr}`).not.toMatch(/\(y\/n\)|\[y\/N\]/i);
     },
@@ -465,7 +465,7 @@ describe("flag contract: unknown flag handling", () => {
   it("rejects unknown flags with error and non-zero exit code", () => {
     const dir = createTempDir("tdk-unknown-flag-");
     try {
-      const res = runTdk(["status", "--nonexistent-flag-test"], { cwd: dir });
+      const res = runFlisk(["status", "--nonexistent-flag-test"], { cwd: dir });
       expect(res.status).toBe(1);
       expect(res.stderr).toContain("error: unknown option");
     } finally {

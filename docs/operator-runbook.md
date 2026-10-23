@@ -56,6 +56,8 @@ Put the environment values the services need in the project `.env`; values in th
 
 ## Cutting a release
 
+> The current ops checklist — pipeline order, candidate and dispatch commands, repair recipes, the unscoped npm package, and troubleshooting — is [Release operations](releasing.md). This section keeps the background: npm authentication, what past releases taught us, and the publish gate.
+
 > [!WARNING]
 > The automatic version bump does not work as expected yet. After the 1.3.185 release, the git tag `v1.3.185` pointed at a commit whose `package.json` still said `1.3.184`, and `bun.lock` was never bumped. npm and the GitHub release had the right version. Check the tag, `package.json`, `cli/package.json` and `bun.lock` after every release until these are fixed: [#1657](https://github.com/flisk-sh/flisk/issues/1657), [#1658](https://github.com/flisk-sh/flisk/issues/1658), [#1659](https://github.com/flisk-sh/flisk/issues/1659).
 
@@ -94,7 +96,7 @@ The normal release is the workflow, from a release branch (see the publish gate 
 
 1. Cut `release/rc-<timestamp>` at the commit to ship, and run the Release candidate workflow on it. Wait for it to pass.
 2. Run `gh workflow run release-binaries.yml --ref release/rc-<timestamp>`. The workflow picks the next unpublished version, builds and checks the binaries, publishes the npm package and the release in `flisk-sh/releases`, and credits fixed issues.
-3. The workflow does not commit the version it published. Open a PR on `main` that sets `version` in `package.json` and `cli/package.json` to that version, so `main` matches npm.
+3. The workflow signs the checksums, then opens a `Release <version> (automatic version bump)` PR so `main` matches npm; merging it tags `v<version>` and publishes the checksums release. If a step fails after publication, follow [Repair a half-finished release](releasing.md#repair-a-half-finished-release) instead of re-dispatching.
 4. The installer verifies each binary against `checksums.txt`.
 
 To build a binary by hand, without publishing, run `scripts/release-binaries.sh`. It writes `tdk-linux-{amd64,arm64}`, `tdk-darwin-{amd64,arm64}`, `tdk-windows-amd64.exe`, `tdk-cli-engine.tar.gz`, and `checksums.txt` (SHA-256) into `release-dist-<version>/`. `scripts/release-binaries.sh --publish` creates a draft release, downloads every asset, compares bytes with the local build, and only then publishes it as latest. `--publish-only` reuses an existing `release-dist-<version>/`.

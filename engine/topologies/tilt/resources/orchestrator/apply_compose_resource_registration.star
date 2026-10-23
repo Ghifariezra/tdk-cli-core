@@ -494,23 +494,22 @@ def _register_run_only_resource(config, resource_path, compose_project_name, aut
         compose_file = root + '/' + compose_file
         port_override = root + '/' + port_override
         env_file = project_env_file(root)
-    compose_files = '-f ' + compose_file
+    compose_files = ['-f', compose_file]
     if str(local("test -f '" + port_override + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
-        compose_files = compose_files + ' -f ' + port_override
+        compose_files = compose_files + ['-f', port_override]
     # .env is gitignored (no .env.example shipped) across every Flisk example repo, so a
     # fresh clone must not hard-require it: only pass --env-file when it actually exists.
-    env_file_flag = ''
+    env_file_flag = []
     if str(local("test -f '" + env_file + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
-        env_file_flag = ' --env-file ' + env_file
+        env_file_flag = ['--env-file', env_file]
+    # Built as an argv list (extend, not `+`) so no argument is ever joined into shell text.
+    run_only_argv = ['docker', 'compose', '-p', compose_project_name]
+    run_only_argv.extend(compose_files)
+    run_only_argv.extend(env_file_flag)
+    run_only_argv.extend(['up', '-d', '--no-build', config['res_name']])
     local_resource(
         name=config['res_name'] + '-run-only',
-        cmd='docker compose -p '
-            + compose_project_name
-            + ' '
-            + compose_files
-            + env_file_flag
-            + ' up -d --no-build '
-            + config['res_name'],
+        cmd=run_only_argv,
         labels=config['labels'] + ['run-only'],
         # The run-only Compose command uses the image produced by the main
         # resource. Keep it behind that resource so --no-build cannot race
@@ -604,7 +603,12 @@ def _register_frontend_typecheck(res, service_dir, typecheck_cmd):
     """
     local_resource(
         name=res['name'] + '-typecheck',
-        cmd="cd '" + service_dir + "' && { bunx tsc --version >/dev/null 2>&1 || { echo 'typecheck needs host dependencies: run bun install in " + service_dir + "'; exit 1; }; } && " + typecheck_cmd,
+        # Fixed script, variable parts passed as argv ($1 = service dir, $2 = typecheck command), never spliced into the shell text.
+        cmd=[
+            'sh', '-c',
+            'cd "$1" && { bunx tsc --version >/dev/null 2>&1 || { echo "typecheck needs host dependencies: run bun install in $1"; exit 1; }; } && eval "$2"',
+            'sh', service_dir, typecheck_cmd,
+        ],
         deps=[service_dir + '/src', service_dir + '/tsconfig.json'],
         labels=['app.' + res['name'], 'typecheck'],
         # tsc --noEmit writes no files, so it can run alongside the image builds.

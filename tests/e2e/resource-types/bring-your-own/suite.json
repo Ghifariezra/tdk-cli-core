@@ -30,6 +30,17 @@
       "args": "echo /health"
     },
     {
+      "id": "example-lobster",
+      "case": "BY1",
+      "args": "lobster /health"
+
+    },
+    {
+      "id": "example-goose",
+      "case": "BY1",
+      "args": "goose /health"
+    },
+    {
       "id": "flisk",
       "case": "BY2",
       "args": "full-stack-fastapi-template /api/v1/utils/health-check/"

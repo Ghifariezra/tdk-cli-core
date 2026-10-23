@@ -1,0 +1,75 @@
+name: 🔏 Release | Sign an existing release
+
+# Repairs the checksums signature of a version whose release-binaries run never signed it (the sign step was
+# skipped when the version-bump push failed; see docs/releasing.md#repair-a-half-finished-release). It signs the
+# checksums.txt that is already published on flisk-sh/releases, so it does not rebuild or re-publish anything.
+# It does not attest build provenance: provenance has to come from the run that built the binaries.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version to sign, without the leading v (for example 1.3.207)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sign-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    name: Sign checksums and attach them to both releases
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write # keyless Sigstore signing (GitHub OIDC)
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
+    steps:
+      - name: Validate version
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be a plain x.y.z release version, got '${VERSION}'"
+            exit 1
+          fi
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Download the published binaries and checksums
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          gh release download "v${VERSION}" --repo flisk-sh/releases --dir release
+          # The signature must cover exactly what users download: refuse to sign a checksums file that does not match.
+          (cd release && sha256sum -c checksums.txt)
+
+      - name: Sign checksums.txt
+        run: |
+          set -euo pipefail
+          cp release/checksums.txt checksums.txt
+          cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+
+      - name: Attach the signature next to the binaries
+        run: |
+          set -euo pipefail
+          gh release upload "v${VERSION}" --repo flisk-sh/releases --clobber checksums.txt.sigstore.json
+
+      - name: Attach the signature to the release in this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Scorecard's Signed-Releases check reads this repository's releases, so the signature has to be here too.
+          if ! gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::No release v${VERSION} exists in ${GITHUB_REPOSITORY}; publish it with release-binaries.yml first."
+            exit 1
+          fi
+          gh release upload "v${VERSION}" --repo "$GITHUB_REPOSITORY" --clobber checksums.txt checksums.txt.sigstore.json

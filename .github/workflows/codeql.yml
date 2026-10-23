@@ -1,5 +1,5 @@
 # GitHub's CodeQL code scanning (free for public repos). Findings appear under Security > Code scanning.
-name: 🔬 CodeQL
+name: 🔬 Security | CodeQL
 
 on:
   push:
@@ -71,3 +71,18 @@ jobs:
         if: ${{ matrix.language != 'actions' || github.event_name != 'pull_request' || needs.changes.outputs.workflows != 'false' }}
         with:
           category: /language:${{ matrix.language }}
+
+  # Starlark (Tiltfiles, *.star) has no CodeQL extractor. This unofficial community analyzer reports through SARIF into the
+  # same Code scanning view. Pinned to a full commit like every other action here.
+  starlark:
+    name: 🔬 Analyze (starlark)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # upload SARIF results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: flisk-sh/codeql-starlark@6b3ac9d69c3bfd11ebe05fbd87bf9f9dd731c687 # main

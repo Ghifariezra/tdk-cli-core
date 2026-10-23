@@ -1,4 +1,7 @@
-export const PYTHON_DEV_COMMAND = "uvicorn main:app --app-dir src --host 0.0.0.0 --port ${PORT:-4000} --reload --reload-dir src";
+// ${PORT:-4000} is shell parameter expansion. Split so Biome does not read it
+// as a JS template placeholder and the shell still receives the literal form.
+export const PYTHON_DEV_COMMAND = "uvicorn main:app --app-dir src --host 0.0.0.0 --port $" +
+    "{PORT:-4000} --reload --reload-dir src";
 export const pythonBackendProvider = {
     id: "python",
     label: "Python 3.12 + FastAPI",

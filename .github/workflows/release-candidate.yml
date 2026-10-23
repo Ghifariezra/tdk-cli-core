@@ -4,7 +4,7 @@
 # stays in its own workflows. release-binaries.yml's publish job reads this workflow's green runs by commit SHA and refuses
 # to publish a commit that has none.
 # Runs on a release/* branch (workflow_dispatch) or an rc-* tag only, never on every push. A pull request does not run it.
-name: 🚦 Release candidate
+name: 🧪 Release | Candidate
 
 on:
   workflow_dispatch:

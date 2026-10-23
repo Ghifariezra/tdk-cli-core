@@ -26,3 +26,5 @@ mirrord = "mirrord"
 postgress = "postgress"
 # Name of the CA bundle package the BYO examples pin.
 certifi = "certifi"
+# in-toto attestation filename (checksums.txt.intoto.jsonl).
+intoto = "intoto"

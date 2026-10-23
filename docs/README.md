@@ -13,6 +13,7 @@
 - [Generated service files](generated-files.md): what Flisk writes from `service.json`, and how to handle drift
 - [Environment, params and secrets](environment.md): the project `.env`, `params`, `secrets` and auth
 - [Operator runbook](operator-runbook.md): install matrix, version minimums, releases, license key
+- [Release operations](releasing.md): cut, verify and repair a CLI release; GitHub Packages backfill; unscoped npm package
 - [WSL2 setup](wsl2.md)
 - [Windows hardware checks](windows-hardware.md): what the Windows e2e suites cover, what a real Windows machine adds, and how to run them
 - [Install and use Flisk alongside Helm](with-helm.md)

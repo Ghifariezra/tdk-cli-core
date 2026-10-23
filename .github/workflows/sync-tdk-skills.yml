@@ -1,4 +1,4 @@
-name: 🔄 Sync shared Flisk skills
+name: 🔁 Automation | Sync shared Flisk skills
 
 on:
   workflow_dispatch:

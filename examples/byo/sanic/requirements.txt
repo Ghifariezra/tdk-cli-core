@@ -241,10 +241,6 @@ sanic-routing==23.12.0 \
     --hash=sha256:1558a72afcb9046ed3134a5edae02fc1552cff08f0fff2e8d5de0877ea43ed73 \
     --hash=sha256:1dcadc62c443e48c852392dba03603f9862b6197fc4cba5bbefeb1ace0848b04
     # via sanic
-setuptools==84.0.0 \
-    --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670 \
-    --hash=sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73
-    # via sanic
 tracerite==2.6.5 \
     --hash=sha256:0de23ea33cede6a905448bf0bd5fa869c4d950d06a3595693eebe55e44070f15 \
     --hash=sha256:e9ee648cf556aa7dbf0298c822a58ce33f9658b927db900fab72f1742146b695
@@ -253,7 +249,7 @@ typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
     # via sanic
-ujson==6.0.0 ; implementation_name == 'cpython' and sys_platform != 'win32' \
+ujson==6.0.0 \
     --hash=sha256:02148bd4706f42b063bb95f6cc309e16554fb4c250db4683688c0a3eb83048ad \
     --hash=sha256:03a385e523f67dec6d4dad0970f20a080cad045b56d9a3564d07807090a9c106 \
     --hash=sha256:0a4edbeb091b195031a0e96fab005150340e383c095cac6b5c2b7dc8f55040b5 \
@@ -374,7 +370,7 @@ ujson==6.0.0 ; implementation_name == 'cpython' and sys_platform != 'win32' \
     --hash=sha256:fd26d4b182b7138fc948cda55fe2e91b70d987731e169e628f42ba22cc6e3cce \
     --hash=sha256:ff3b33d8c8dbbe32936d2056296324371a07ed0b29177e2eb8ec46569436817f
     # via sanic
-uvloop==0.23.0 ; implementation_name == 'cpython' and sys_platform != 'win32' \
+uvloop==0.23.0 \
     --hash=sha256:0305871ac712f54b62af73f943dbf21ae3ce80a44bc0f0151424484affa85645 \
     --hash=sha256:090865d8ce7a03986755a3ce711b7dd0d4b44eb14ab74368b717f3fad1180208 \
     --hash=sha256:098a85e1393ef5202767b7e5fb41a32cd8bd81e6ee4af364c179801c4aa3f6d4 \

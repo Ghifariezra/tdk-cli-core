@@ -116,7 +116,7 @@ def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
     assert "--experimental.plugins.sablier.version=v1.3.0" in yaml_text
     assert "/etc/traefik/dynamic:ro" in yaml_text
     assert "wake-gateway:" in yaml_text
-    assert "/root/.tilt-dev:ro" in yaml_text
+    assert "/home/bun/.tilt-dev:ro" in yaml_text
 
 
 @pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
@@ -157,3 +157,58 @@ def test_wake_gateway_mounts_project_root_at_its_own_absolute_path(tmp_path):
         "r = {'yaml': generate_standalone_traefik_compose(True)}\n",
     )
     assert "- /Users/dev/tdk-erp-system:/Users/dev/tdk-erp-system:ro" in r["yaml"]
+
+
+@pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
+def test_wake_gateway_runs_non_root_and_joins_docker_socket_group(tmp_path):
+    """The gateway image runs as bun (uid 1000), so its tilt session token is
+    mounted under bun's home and it reaches the Docker socket through a
+    supplementary group, not root."""
+    r = _run_starlark(
+        tmp_path,
+        "os.environ['HOME'] = '/Users/dev'\n"
+        "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
+        "r = {'yaml': generate_standalone_traefik_compose(True)}\n",
+    )
+    yaml_text = r["yaml"]
+    assert "      - /Users/dev/.tilt-dev:/home/bun/.tilt-dev:ro" in yaml_text
+    assert "/root/.tilt-dev" not in yaml_text
+    assert 'group_add:\n      - "0"' in yaml_text
+
+
+@pytest.mark.skipif(
+    shutil.which("docker") is None or subprocess.run(["docker", "info"], capture_output=True).returncode != 0,
+    reason="Docker daemon not running",
+)
+def test_wake_gateway_image_is_non_root_and_can_use_docker_socket():
+    """Build the gateway image and run it the way the generated compose does
+    (socket mounted, socket group added): it must not run as uid 0 and must be
+    able to talk to the Docker daemon."""
+    context = REPO_ROOT / "engine" / "assets" / "docker" / "wake-gateway"
+    tag = "tdk-wake-gateway-nonroot-test:local"
+    build = subprocess.run(["docker", "build", "-q", "-t", tag, str(context)], capture_output=True, text=True, timeout=900)
+    assert build.returncode == 0, build.stderr[-3000:]
+    try:
+        socket_gid = subprocess.run(
+            ["docker", "run", "--rm", "-v", "/var/run/docker.sock:/var/run/docker.sock", "alpine", "stat", "-c", "%g", "/var/run/docker.sock"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        ).stdout.strip()
+        run = subprocess.run(
+            [
+                "docker", "run", "--rm", "--group-add", socket_gid,
+                "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                "--entrypoint", "sh", tag,
+                "-c", "id -u; docker version --format '{{.Server.Version}}'",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        assert run.returncode == 0, run.stderr[-3000:]
+        uid, server_version = run.stdout.split()[:2]
+        assert uid == "1000"
+        assert server_version
+    finally:
+        subprocess.run(["docker", "rmi", "-f", tag], capture_output=True)

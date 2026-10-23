@@ -5,7 +5,7 @@
 # Dispatched by hand only: the setup needs a Windows runner and takes a while, and the old WSL2 smoke job was
 # flaky on setup-wsl's `wsl --update` and on the Ubuntu and Docker mirrors (#716, #717), so it does not run on
 # every pull request. The evidence the suite writes is the artifact an acceptance run links to.
-name: 🐧 Platforms WSL2 E2E
+name: 🪟 E2E | Platforms WSL2
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+      - uses: Vampire/setup-wsl@4c48163d9f981914dd8caa0fc335fe19cca5bff4 # v7.2.0
         id: wsl
         with:
           distribution: Ubuntu-24.04

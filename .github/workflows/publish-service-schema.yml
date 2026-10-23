@@ -1,4 +1,4 @@
-name: 📋 Publish service schema
+name: 🗂️ Release | Publish service schema
 
 # engine/schemas/service-schema.json is the source of truth. The copy at
 # https://flisk.sh/schema.service.json is a deploy artifact for editors,

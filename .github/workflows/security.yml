@@ -1,7 +1,7 @@
 # Report-only code scanners: Trivy, OSV-Scanner and Semgrep upload SARIF to Security > Code scanning and never fail the build.
 # On pull requests each scanner runs only when its paths changed (a skipped job still reports its check name). On push to
 # main, on the nightly schedule and by hand they run in full.
-name: 🛡️ Security Scans
+name: 🛡️ Security | Scans
 
 on:
   push:

@@ -13,12 +13,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureExit } from "../../test-support/index.js";
+import { promptConfirm } from "../../utils/prompt.js";
 import {
   EJECTED_CONTENT,
   ejectCommand,
   TILT_UP_COMMAND,
   TILTFILE_RELATIVE_PATH,
 } from "../eject.js";
+
+vi.mock("../../utils/prompt.js", () => ({
+  promptConfirm: vi.fn(),
+}));
 
 const originalCwd = process.cwd();
 
@@ -157,5 +162,77 @@ describe("flisk eject", () => {
     } finally {
       error.mockRestore();
     }
+  });
+
+  it("fails with an informative error when generated Tilt files are missing", async () => {
+    rmSync(join(tempDir, ".tdk", ".tdk-out", "Tiltfile"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { expectExit } = captureExit();
+    try {
+      await expect(
+        ejectCommand.parseAsync(["node", "flisk", "--yes"], { from: "node" }),
+      ).rejects.toThrow("process.exit");
+      const output = error.mock.calls.flat().join("\n");
+      expect(output).toContain(
+        "Generated Tilt files are missing. Run `flisk project --yes` before ejecting.",
+      );
+      expectExit(1);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it("aborts eject and writes nothing when user declines confirmation", async () => {
+    vi.mocked(promptConfirm).mockResolvedValue(false);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => output.push(args.join(" "));
+    try {
+      await ejectCommand.parseAsync(["node", "flisk"], { from: "node" });
+    } finally {
+      console.log = originalLog;
+    }
+    expect(existsSync(join(tempDir, "EJECTED.md"))).toBe(false);
+  });
+
+  it("proceeds with eject when user accepts confirmation prompt without --yes flag", async () => {
+    vi.mocked(promptConfirm).mockResolvedValue(true);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => output.push(args.join(" "));
+    try {
+      await ejectCommand.parseAsync(["node", "flisk"], { from: "node" });
+    } finally {
+      console.log = originalLog;
+    }
+    expect(existsSync(join(tempDir, "EJECTED.md"))).toBe(true);
+    expect(output).toContain("Wrote EJECTED.md. Nothing was copied, moved or generated.");
+  });
+
+  it("prints (none) for files written in dry run when EJECTED.md already exists", async () => {
+    writeFileSync(join(tempDir, "EJECTED.md"), "already exists\n");
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => output.push(args.join(" "));
+    try {
+      await ejectCommand.parseAsync(["node", "flisk", "--dry-run"], { from: "node" });
+    } finally {
+      console.log = originalLog;
+    }
+    const text = output.join("\n");
+    expect(text).toContain("Files written:\n  (none)");
+  });
+
+  it("omits root Tiltfile section in dry run when root Tiltfile is absent", async () => {
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => output.push(args.join(" "));
+    try {
+      await ejectCommand.parseAsync(["node", "flisk", "--dry-run"], { from: "node" });
+    } finally {
+      console.log = originalLog;
+    }
+    const text = output.join("\n");
+    expect(text).not.toContain("Root Tiltfile, left where it is");
   });
 });

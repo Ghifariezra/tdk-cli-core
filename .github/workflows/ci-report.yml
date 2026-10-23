@@ -1,7 +1,7 @@
 # Weekly CI cost and health report (#1289): per job run count, p50 and p90, failure, cancellation and skip rates, flaky cases,
 # pull request time to the aggregate result, and every job over its tier's budget. Posted to the job summary and as a comment
 # on the "Weekly CI report" issue (created on the first run). Runs on the default branch only; no pull request code.
-name: 📈 CI report
+name: 📋 CI | Report
 
 on:
   schedule:

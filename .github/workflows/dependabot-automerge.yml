@@ -1,0 +1,28 @@
+# Enables auto-merge (squash) on Dependabot PRs. GitHub then merges once the required checks pass.
+name: Automation | Dependabot auto-merge
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only enables auto-merge on the PR, so it can use the write token Dependabot PRs otherwise lack
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  automerge:
+    name: Enable auto-merge for Dependabot
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
+    runs-on: ubuntu-26.04
+    timeout-minutes: 2
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable squash auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

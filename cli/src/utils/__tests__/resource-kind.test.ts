@@ -8,7 +8,7 @@ import { getMcpIndexTemplate } from "../../backend-frameworks/mcp.js";
 import type { DiscoveredResource } from "../../types/index.js";
 import { findMissingHealthRoutes } from "../doctor-runtime.js";
 import { isApiServiceType } from "../resource-kind.js";
-import { buildHealthTargets, resolveServicePath } from "../service-urls.js";
+import { buildAdvertisedTargets, buildHealthTargets, resolveServicePath } from "../service-urls.js";
 
 const resource = (name: string, appType: string, path = `/tmp/${name}`): DiscoveredResource => ({
   name,
@@ -18,24 +18,36 @@ const resource = (name: string, appType: string, path = `/tmp/${name}`): Discove
 });
 
 describe("isApiServiceType", () => {
-  it("is true for a backend and for an mcp server, false for everything else", () => {
+  it("is true for backend, mcp, and agent services", () => {
     expect(isApiServiceType("backend")).toBe(true);
     expect(isApiServiceType("mcp")).toBe(true);
-    for (const other of [
-      "frontend",
-      "worker",
-      "sdk",
-      "library",
-      "migrator",
-      "bring-your-own",
-      undefined,
-    ]) {
-      expect(isApiServiceType(other)).toBe(false);
+    expect(isApiServiceType("agent")).toBe(true);
+  });
+
+  it("is false for non-API resource types", () => {
+    const nonApiTypes = ["frontend", "worker", "sdk", "library", "migrator", "bring-your-own"];
+    for (const type of nonApiTypes) {
+      expect(isApiServiceType(type)).toBe(false);
     }
+  });
+
+  it("is false for invalid, blank, or undefined inputs", () => {
+    expect(isApiServiceType(undefined)).toBe(false);
+    expect(isApiServiceType("")).toBe(false);
+    expect(isApiServiceType("   ")).toBe(false);
+    expect(isApiServiceType("database")).toBe(false);
+    expect(isApiServiceType("redis")).toBe(false);
+  });
+
+  it("is case-sensitive and rejects mismatched casing", () => {
+    expect(isApiServiceType("Backend")).toBe(false);
+    expect(isApiServiceType("MCP")).toBe(false);
+    expect(isApiServiceType("Agent")).toBe(false);
+    expect(isApiServiceType("AGENT")).toBe(false);
   });
 });
 
-describe("an mcp resource is routed and checked like a backend", () => {
+describe("mcp resource classification & routing", () => {
   it("is advertised on the API route, without the stack or -api suffix", () => {
     expect(resolveServicePath(resource("docs-mcp", "mcp"))).toBe("/api/docs-mcp");
     expect(resolveServicePath(resource("orders-api", "mcp"))).toBe("/api/orders");
@@ -51,7 +63,47 @@ describe("an mcp resource is routed and checked like a backend", () => {
   });
 });
 
-describe("doctor's health-route check on the mcp scaffold", () => {
+describe("agent resource classification & routing", () => {
+  it("routes an agent service under the API host like a backend", () => {
+    expect(resolveServicePath(resource("support-agent", "agent"))).toBe("/api/support-agent");
+    expect(resolveServicePath(resource("triage", "agent"))).toBe("/api/triage");
+    expect(resolveServicePath(resource("orders-api", "agent"))).toBe("/api/orders");
+  });
+
+  it("creates health targets on the API host for agent resources", () => {
+    const targets = buildHealthTargets([
+      resource("support-agent", "agent"),
+      resource("web", "frontend"),
+    ]);
+    const agentTarget = targets.find((t) => t.name === "support-agent");
+    expect(agentTarget).toBeDefined();
+    expect(agentTarget?.appType).toBe("agent");
+    expect(agentTarget?.url).toMatch(/^http:\/\/api\./);
+    expect(agentTarget?.url).toMatch(/\/api\/support-agent\/health$/);
+  });
+
+  it("builds advertised target without /health suffix for agent resources", () => {
+    const targets = buildAdvertisedTargets([resource("support-agent", "agent")]);
+    expect(targets).toHaveLength(1);
+    expect(targets[0].url).toMatch(/\/api\/support-agent$/);
+  });
+});
+
+describe("non-routable resources classification", () => {
+  it("excludes workers, migrators, sdks, and libraries from health targets", () => {
+    const nonRoutable = [
+      resource("queue-worker", "worker"),
+      resource("db-migrator", "migrator"),
+      resource("client-sdk", "sdk"),
+      resource("core-lib", "library"),
+      resource("legacy-app", "bring-your-own"),
+    ];
+    const targets = buildHealthTargets(nonRoutable);
+    expect(targets).toEqual([]);
+  });
+});
+
+describe("doctor's health-route check on mcp and agent resources", () => {
   let root = "";
 
   afterEach(() => {
@@ -72,5 +124,20 @@ describe("doctor's health-route check on the mcp scaffold", () => {
     expect(findMissingHealthRoutes([resource("docs-mcp", "mcp", root)]).map((m) => m.name)).toEqual(
       ["docs-mcp"],
     );
+  });
+
+  it("verifies health route detection in agent resources", () => {
+    root = mkdtempSync(join(tmpdir(), "flisk-agent-health-"));
+    mkdirSync(join(root, "src"));
+    writeFileSync(
+      join(root, "src", "index.ts"),
+      "app.get('/health', (c) => c.json({ ok: true }));",
+    );
+    expect(findMissingHealthRoutes([resource("triage-agent", "agent", root)])).toEqual([]);
+
+    writeFileSync(join(root, "src", "index.ts"), "export const agent = true;");
+    expect(
+      findMissingHealthRoutes([resource("triage-agent", "agent", root)]).map((m) => m.name),
+    ).toEqual(["triage-agent"]);
   });
 });

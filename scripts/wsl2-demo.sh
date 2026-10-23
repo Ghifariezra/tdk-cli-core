@@ -51,6 +51,8 @@ project_dir="$HOME/.flisk/flisk-demo"
 cd "$project_dir"
 
 flisk status --json >"$status_json" 2>"$evidence_dir/demo-status.err" || fail "flisk status --json failed; see $status_json"
+# The single-quoted argument is JavaScript; its template literals expand in Node.
+# shellcheck disable=SC2016
 node -e '
 const fs = require("fs");
 const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
@@ -73,6 +75,8 @@ if (notReady.length > 0) {
 ' "$status_json" || fail "the demo left the stack in a state that is not ready; see $status_json"
 
 flisk networks --json >"$networks_json" 2>"$evidence_dir/demo-networks.err" || fail "flisk networks --json failed; see $networks_json"
+# The single-quoted argument is JavaScript; its template literals expand in Node.
+# shellcheck disable=SC2016
 node -e '
 const fs = require("fs");
 const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));

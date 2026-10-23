@@ -9,7 +9,7 @@
 # Use scope "one-stack" for a quick check (about 16 services).
 #
 # The cases live in tests/e2e/scale/erp (suite.json, run.sh): E1 project and doctor, E2 flisk up and the /health wait, E3 the report.
-name: 🏭 ERP fixture scale E2E (full, weekly)
+name: 🏋️ E2E | ERP fixture scale (full, weekly)
 
 on:
   workflow_dispatch:

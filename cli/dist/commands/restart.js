@@ -3,7 +3,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { STANDARD_PORTS } from "../utils/constants.js";
-import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils/errors.js";
+import { errorFactories, ProcessExitError, runCommand, showErrorAndExit, TdkError, } from "../utils/errors.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
@@ -81,6 +81,9 @@ export const restartCommand = new Command("restart")
             await action();
         }
         catch (err) {
+            if (err instanceof ProcessExitError) {
+                throw err;
+            }
             writeMachineError(err);
         }
         return;

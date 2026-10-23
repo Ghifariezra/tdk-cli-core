@@ -87,13 +87,13 @@ Rules for legs:
 
 A completeness test reads each exported `Command` and fails when it registers one of these flags but has no row in the table. A new command cannot add `--json` without joining the contract.
 
-A command's own test file then covers only what is specific to that command (what `down` stops, what `upgrade` compares). Share the setup code too: build a project with `createTempProject`, run it with `runTdk`, and read the envelope with `parseEnvelope` from `cli/src/test-support/`, instead of copying `mkdtempSync` and `spawnSync` into every file. The contract tests are tracked in #1396; until they land, follow the same table shape in your own file.
+A command's own test file then covers only what is specific to that command (what `down` stops, what `upgrade` compares). Share the setup code too: build a project with `createTempProject`, run it with `runFlisk`, and read the envelope with `parseEnvelope` from `cli/src/test-support/`, instead of copying `mkdtempSync` and `spawnSync` into every file. The contract tests are tracked in #1396; until they land, follow the same table shape in your own file.
 
 ## Shared test helpers
 
 Tests that start the CLI or build a project on disk use `cli/src/test-support/` instead of copying the boilerplate:
 
-- `runTdk(args, { cwd, input?, env? })` runs `flisk` in a child process and returns `{ status, stdout, stderr }`. It throws when the child cannot run or is killed, so a missing exit code never reads as a pass.
+- `runFlisk(args, { cwd, input?, env? })` runs `flisk` in a child process and returns `{ status, stdout, stderr }`. It throws when the child cannot run or is killed, so a missing exit code never reads as a pass.
 - `createTempProject(spec)` writes a project under a temporary directory and removes it when the test finishes. `spec` lists stacks, resources and generated config files, so a test states only what it needs.
 - `parseEnvelope(stdout)` asserts that stdout is one JSON line with `schemaVersion`, `data` and `errors`, and returns it.
 

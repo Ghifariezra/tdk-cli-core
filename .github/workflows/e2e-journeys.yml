@@ -6,7 +6,7 @@
 # The gate reports on every pull request, so the path filter lives in the selector, not in this workflow's `on:`.
 # Each leg reports the check name its old workflow used (suite.json `checkName`), so branch protection keeps working until it
 # changes. `gate` is the single job to require once it does: it passes when every selected leg passed or none was selected.
-name: 🧭 E2E journeys
+name: 🧭 E2E | Journeys
 
 on:
   merge_group:
@@ -29,7 +29,7 @@ on:
   # Prove each release boots as soon as it is published. Read-only token, no secrets for the pull request path, main only, and
   # it checks out main itself rather than the triggering run's ref.
   workflow_run: # zizmor: ignore[dangerous-triggers]
-    workflows: ["Release binaries and npm package"]
+    workflows: ["🚀 Release | Binaries and npm package"]
     types: [completed]
     branches: [main]
 

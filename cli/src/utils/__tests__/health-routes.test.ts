@@ -149,6 +149,87 @@ describe("checkHealthRoutes", () => {
     service("storefront", { appType: "frontend" }, { "src/main.ts": "render();" });
     const result = checkHealthRoutes(root);
     expect(result.isSkipped).toBe(true);
+    expect(result.message).toBe("No backend services to check");
+  });
+
+  it("skips gracefully when resource discovery throws", () => {
+    const invalidPath = join(root, "nonexistent-dir-for-doctor");
+    const result = checkHealthRoutes(invalidPath);
+    expect(result.isSkipped).toBe(true);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("Could not read services");
+  });
+
+  it("checks mcp service type and flags missing health route", () => {
+    service(
+      "docs-mcp",
+      { appType: "mcp" },
+      {
+        "src/index.ts": "export const server = new Server();",
+      },
+    );
+    const result = checkHealthRoutes(root);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain('docs-mcp: no "/health" route');
+
+    writeFileSync(
+      join(root, "services", "shop", "docs-mcp", "src", "index.ts"),
+      "export const server = new Server(); router.get('/health', h);",
+    );
+    expect(checkHealthRoutes(root).didPass).toBe(true);
+  });
+
+  it("checks agent service type and flags missing health route", () => {
+    service(
+      "triage-agent",
+      { appType: "agent" },
+      {
+        "src/index.ts": "export const agent = new Agent();",
+      },
+    );
+    const result = checkHealthRoutes(root);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain('triage-agent: no "/health" route');
+
+    writeFileSync(
+      join(root, "services", "shop", "triage-agent", "src", "index.ts"),
+      "export const agent = new Agent(); router.get('/health', h);",
+    );
+    expect(checkHealthRoutes(root).didPass).toBe(true);
+  });
+
+  it("lists multiple missing backends in failure output", () => {
+    service(
+      "orders-api",
+      { appType: "backend" },
+      { "src/index.ts": "app.get('/orders', handler);" },
+    );
+    service(
+      "catalog-api",
+      { appType: "backend", healthCheckPath: "/ping" },
+      { "src/index.ts": "app.get('/products', handler);" },
+    );
+    const result = checkHealthRoutes(root);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain('orders-api: no "/health" route');
+    expect(result.message).toContain('catalog-api: no "/ping" route');
+    expect(result.fix).toContain("app.get(");
+  });
+
+  it("passes when multiple backends all define their health route", () => {
+    service(
+      "orders-api",
+      { appType: "backend" },
+      { "src/index.ts": "app.get('/health', handler);" },
+    );
+    service(
+      "catalog-api",
+      { appType: "backend", healthCheckPath: "/status" },
+      { "src/index.ts": "app.get('/status', handler);" },
+    );
+    const result = checkHealthRoutes(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toBe("All 2 backends define their health route");
   });
 });
 
@@ -175,6 +256,13 @@ describe("resolveHealthPaths", () => {
     expect(resolveHealthPaths({ ...base, traefik: { healthCheck: "/ready" } })).toEqual({
       container: "/health",
       traefik: "/ready",
+    });
+  });
+
+  it("handles nested custom paths like /api/v1/healthz", () => {
+    expect(resolveHealthPaths({ ...base, healthCheckPath: "/api/v1/healthz" })).toEqual({
+      container: "/api/v1/healthz",
+      traefik: "/api/v1/healthz",
     });
   });
 });
@@ -263,6 +351,74 @@ describe("findMissingHealthRoutes", () => {
         name: "api",
         healthPath: "/traefik-ready",
         usedBy: "Traefik healthcheck",
+      },
+    ]);
+  });
+
+  it("recognizes a health route declaration quoted in backticks, single quotes, or double quotes", () => {
+    const src = join(tempDir, "src");
+    mkdirSync(src, { recursive: true });
+
+    const resSingle: DiscoveredResource = {
+      name: "api-single",
+      path: tempDir,
+      configPath: join(tempDir, "service.json"),
+      config: { appName: "api-single", appType: "backend" },
+    };
+
+    // Single quotes
+    writeFileSync(join(src, "single.ts"), "app.get('/health', (c) => c.json({ status: 'ok' }));");
+    expect(findMissingHealthRoutes([resSingle])).toEqual([]);
+
+    // Double quotes
+    writeFileSync(join(src, "single.ts"), 'app.get("/health", (c) => c.json({ status: "ok" }));');
+    expect(findMissingHealthRoutes([resSingle])).toEqual([]);
+
+    // Backticks
+    writeFileSync(join(src, "single.ts"), "app.get(`/health`, (c) => c.json({ status: `ok` }));");
+    expect(findMissingHealthRoutes([resSingle])).toEqual([]);
+
+    // Unquoted mention of the path is not a route declaration
+    writeFileSync(join(src, "single.ts"), "const probe = healthCheckPath; // defaults to /health");
+    expect(findMissingHealthRoutes([resSingle])).toEqual([
+      {
+        name: "api-single",
+        healthPath: "/health",
+        usedBy: "container and Traefik healthchecks",
+      },
+    ]);
+  });
+
+  it("includes agent and mcp services in route validation", () => {
+    const src = join(tempDir, "src");
+    mkdirSync(src, { recursive: true });
+    writeFileSync(join(src, "index.ts"), "console.log('no route');");
+
+    const mcpRes: DiscoveredResource = {
+      name: "my-mcp",
+      path: tempDir,
+      configPath: join(tempDir, "service.json"),
+      config: { appName: "my-mcp", appType: "mcp" },
+    };
+    expect(findMissingHealthRoutes([mcpRes])).toEqual([
+      {
+        name: "my-mcp",
+        healthPath: "/health",
+        usedBy: "container and Traefik healthchecks",
+      },
+    ]);
+
+    const agentRes: DiscoveredResource = {
+      name: "my-agent",
+      path: tempDir,
+      configPath: join(tempDir, "service.json"),
+      config: { appName: "my-agent", appType: "agent" },
+    };
+    expect(findMissingHealthRoutes([agentRes])).toEqual([
+      {
+        name: "my-agent",
+        healthPath: "/health",
+        usedBy: "container and Traefik healthchecks",
       },
     ]);
   });

@@ -1,4 +1,4 @@
-name: Publish existing npm version to GitHub Packages
+name: 📦 Release | Publish existing npm version to GitHub Packages
 
 on:
   workflow_dispatch:
@@ -94,14 +94,30 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
+          TARBALL_INTEGRITY: ${{ steps.npm-package.outputs.tarball_integrity }}
         run: | # zizmor: ignore[adhoc-packages] Verifies the published CLI can be installed from GitHub Packages in a fresh isolated prefix
           PREFIX="$RUNNER_TEMP/tdk-install"
           NPMRC="$RUNNER_TEMP/consumer.npmrc"
           # npm must expand this environment reference when it reads the temporary config.
           # shellcheck disable=SC2016
           printf '%s\n' '@flisk-sh:registry=https://npm.pkg.github.com' '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > "$NPMRC"
-          NPM_CONFIG_USERCONFIG="$NPMRC" npm install --global --prefix "$PREFIX" "@flisk-sh/flisk@${VERSION}"
-          INSTALLED_VERSION=$(PATH="$PREFIX/bin:$PATH" "$PREFIX/bin/tdk" --version)
+          # Fetch the tarball from GitHub Packages, check it against the integrity of the npm tarball this run published,
+          # and install that exact file. Installing by name would leave the dependency unpinned (Scorecard Pinned-Dependencies).
+          FETCHED="$RUNNER_TEMP/github-packages-tarball"
+          mkdir -p "$FETCHED"
+          NPM_CONFIG_USERCONFIG="$NPMRC" npm pack "@flisk-sh/flisk@${VERSION}" --silent --pack-destination "$FETCHED"
+          TARBALL=$(find "$FETCHED" -maxdepth 1 -name '*.tgz' -print -quit)
+          ACTUAL="sha512-$(openssl dgst -sha512 -binary "$TARBALL" | openssl base64 -A)"
+          if [ "$ACTUAL" != "$TARBALL_INTEGRITY" ]; then
+            echo "::error::GitHub Packages served a tarball with integrity $ACTUAL, expected $TARBALL_INTEGRITY"
+            exit 1
+          fi
+          npm install --global --prefix "$PREFIX" "$TARBALL"
+          # The rebrand renamed the published bin from tdk to flisk; a pre-rebrand version being
+          # backfilled still links bin/tdk, so accept either.
+          BIN="$PREFIX/bin/flisk"
+          if [ ! -e "$BIN" ]; then BIN="$PREFIX/bin/tdk"; fi
+          INSTALLED_VERSION=$(PATH="$PREFIX/bin:$PATH" "$BIN" --version)
           if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
             echo "::error::Expected flisk --version $VERSION, got $INSTALLED_VERSION"
             exit 1

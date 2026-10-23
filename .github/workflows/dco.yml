@@ -1,6 +1,6 @@
 # Every non-merge commit in a pull request must carry a Signed-off-by line.
 # See DCO and CONTRIBUTING.md. Bot-authored commits are exempt.
-name: 📜 DCO
+name: 📜 CI | DCO
 
 on:
   pull_request:

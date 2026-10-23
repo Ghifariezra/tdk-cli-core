@@ -9,14 +9,14 @@
 # The measurement cases live in tests/e2e/scale/benchmarks (suite.json, run.sh): B1 generates the project,
 # B2 runs the cold and warm starts, B3 builds the report. This workflow only builds the CLI, installs Tilt, and
 # publishes; publishing is gated on the trigger below.
-name: 📊 Benchmarks report
+name: 📊 CI | Benchmarks report
 
 on:
   schedule:
     - cron: "30 2 * * *" # nightly, on the latest main
   # Measure each release right after it is published. Read-only token, no secrets, main branch only.
   workflow_run: # zizmor: ignore[dangerous-triggers]
-    workflows: ["Release binaries and npm package"]
+    workflows: ["🚀 Release | Binaries and npm package"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

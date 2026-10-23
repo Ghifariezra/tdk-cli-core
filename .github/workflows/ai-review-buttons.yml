@@ -8,7 +8,7 @@
 # events on already-open PRs. Run workflow_dispatch once after merge to
 # backfill open PRs (forks and empty bodies included). Closed PRs do not need
 # a backfill; the next reopen runs the normal trigger. No synchronize.
-name: 🤖 AI review buttons
+name: 🔍 Automation | AI review buttons
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only writes the PR body
