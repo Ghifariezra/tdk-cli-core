@@ -25,7 +25,7 @@ a copyable fix, CI-readable, no change for unpinned repos.
 6. **Exempt commands:** `upgrade`, `version`, `completion`, help. Blocking them would
    leave no way out of a mismatch.
 7. **Enforcement point:** keep `enforceVersionFloor` as the single call site for `up`. Other commands call a shared gate right after resolving the project root, before any read-modify-write: `config` (regenerate, migrate, verify, enable-infra, disable-infra), `eject`, `resource` (not `resource --frameworks`), and `stack`. `project` is not gated: a new project has no `.tdk/project.json`, so the pin evaluates to none. `config edit` and `resource --frameworks` stay exempt.
-8. **Rename `minTdkVersion` to `minFliskVersion`**, per maintainer review. Open question: keep `minTdkVersion` readable as a deprecated alias for one release, or hard rename?
+8. **Rename `minTdkVersion` to `minFliskVersion`**, per maintainer review. `minTdkVersion` stays readable as a deprecated alias for one release: it is read only when `minFliskVersion` is absent, `flisk up` and `flisk doctor` warn that it is deprecated, and the alias is removed in the next minor release. If both fields are set, `minFliskVersion` wins and the alias is ignored with a warning. Existing files keep working without edits.
 
 ## Risks / Trade-offs
 
@@ -35,4 +35,3 @@ a copyable fix, CI-readable, no change for unpinned repos.
 ## Open Questions
 
 - Bypass outside `up`: one shared environment variable (for example `FLISK_IGNORE_VERSION=1`) or a `--ignore-version` flag per command.
-- Alias for `minTdkVersion` for one release, or hard rename?

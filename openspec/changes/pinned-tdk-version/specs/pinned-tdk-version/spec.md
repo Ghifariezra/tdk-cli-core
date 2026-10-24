@@ -67,3 +67,15 @@ A project without `pinnedFliskVersion` MUST behave exactly as before, including 
 #### Scenario: Bypass on another gated command
 - **WHEN** `flisk config regenerate` runs on a mismatch with the documented bypass set
 - **THEN** it warns that the pin was not checked and continues
+
+### Requirement: Legacy floor field is still read for one release
+The `minTdkVersion` field MUST keep working as a deprecated alias of `minFliskVersion` for one release, with the same floor behavior.
+
+#### Scenario: Legacy field only
+- **WHEN** `.tdk/project.json` sets `minTdkVersion` and not `minFliskVersion`
+- **THEN** the floor is evaluated with that value
+- **AND** the command warns that `minTdkVersion` is deprecated and names `minFliskVersion` as its replacement
+
+#### Scenario: Both fields set
+- **WHEN** both `minTdkVersion` and `minFliskVersion` are set
+- **THEN** `minFliskVersion` is used and the alias is ignored with a warning
